@@ -19,31 +19,31 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\dilithium\ref\fips202.c" />
-    <ClCompile Include="..\..\..\dilithium\ref\ntt.c" />
-    <ClCompile Include="..\..\..\dilithium\ref\packing.c" />
-    <ClCompile Include="..\..\..\dilithium\ref\poly.c" />
-    <ClCompile Include="..\..\..\dilithium\ref\polyvec.c" />
-    <ClCompile Include="..\..\..\dilithium\ref\randombytes.c" />
-    <ClCompile Include="..\..\..\dilithium\ref\reduce.c" />
-    <ClCompile Include="..\..\..\dilithium\ref\rounding.c" />
-    <ClCompile Include="..\..\..\dilithium\ref\sign.c" />
-    <ClCompile Include="..\..\..\dilithium\ref\symmetric-shake.c" />
+    <ClCompile Include="..\CrystalsDilithium\ref\fips202.c" />
+    <ClCompile Include="..\CrystalsDilithium\ref\ntt.c" />
+    <ClCompile Include="..\CrystalsDilithium\ref\packing.c" />
+    <ClCompile Include="..\CrystalsDilithium\ref\poly.c" />
+    <ClCompile Include="..\CrystalsDilithium\ref\polyvec.c" />
+    <ClCompile Include="..\CrystalsDilithium\ref\randombytes.c" />
+    <ClCompile Include="..\CrystalsDilithium\ref\reduce.c" />
+    <ClCompile Include="..\CrystalsDilithium\ref\rounding.c" />
+    <ClCompile Include="..\CrystalsDilithium\ref\sign.c" />
+    <ClCompile Include="..\CrystalsDilithium\ref\symmetric-shake.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\dilithium\ref\api.h" />
-    <ClInclude Include="..\..\..\dilithium\ref\config.h" />
-    <ClInclude Include="..\..\..\dilithium\ref\fips202.h" />
-    <ClInclude Include="..\..\..\dilithium\ref\ntt.h" />
-    <ClInclude Include="..\..\..\dilithium\ref\packing.h" />
-    <ClInclude Include="..\..\..\dilithium\ref\params.h" />
-    <ClInclude Include="..\..\..\dilithium\ref\poly.h" />
-    <ClInclude Include="..\..\..\dilithium\ref\polyvec.h" />
-    <ClInclude Include="..\..\..\dilithium\ref\randombytes.h" />
-    <ClInclude Include="..\..\..\dilithium\ref\reduce.h" />
-    <ClInclude Include="..\..\..\dilithium\ref\rounding.h" />
-    <ClInclude Include="..\..\..\dilithium\ref\sign.h" />
-    <ClInclude Include="..\..\..\dilithium\ref\symmetric.h" />
+    <ClInclude Include="..\CrystalsDilithium\ref\api.h" />
+    <ClInclude Include="..\CrystalsDilithium\ref\config.h" />
+    <ClInclude Include="..\CrystalsDilithium\ref\fips202.h" />
+    <ClInclude Include="..\CrystalsDilithium\ref\ntt.h" />
+    <ClInclude Include="..\CrystalsDilithium\ref\packing.h" />
+    <ClInclude Include="..\CrystalsDilithium\ref\params.h" />
+    <ClInclude Include="..\CrystalsDilithium\ref\poly.h" />
+    <ClInclude Include="..\CrystalsDilithium\ref\polyvec.h" />
+    <ClInclude Include="..\CrystalsDilithium\ref\randombytes.h" />
+    <ClInclude Include="..\CrystalsDilithium\ref\reduce.h" />
+    <ClInclude Include="..\CrystalsDilithium\ref\rounding.h" />
+    <ClInclude Include="..\CrystalsDilithium\ref\sign.h" />
+    <ClInclude Include="..\CrystalsDilithium\ref\symmetric.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

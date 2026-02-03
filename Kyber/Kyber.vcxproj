@@ -132,6 +132,9 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <CompileAs>CompileAsC</CompileAs>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/wd4244 /wd4267 %(AdditionalOptions)</AdditionalOptions>
+      <CallingConvention>Cdecl</CallingConvention>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -142,32 +145,32 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\kyber\ref\api.h" />
-    <ClInclude Include="..\..\..\kyber\ref\cbd.h" />
-    <ClInclude Include="..\..\..\kyber\ref\fips202.h" />
-    <ClInclude Include="..\..\..\kyber\ref\indcpa.h" />
-    <ClInclude Include="..\..\..\kyber\ref\kem.h" />
-    <ClInclude Include="..\..\..\kyber\ref\ntt.h" />
-    <ClInclude Include="..\..\..\kyber\ref\params.h" />
-    <ClInclude Include="..\..\..\kyber\ref\poly.h" />
-    <ClInclude Include="..\..\..\kyber\ref\polyvec.h" />
-    <ClInclude Include="..\..\..\kyber\ref\randombytes.h" />
-    <ClInclude Include="..\..\..\kyber\ref\reduce.h" />
-    <ClInclude Include="..\..\..\kyber\ref\symmetric.h" />
-    <ClInclude Include="..\..\..\kyber\ref\verify.h" />
+    <ClCompile Include="..\CrystalsKyber\ref\cbd.c" />
+    <ClCompile Include="..\CrystalsKyber\ref\fips202.c" />
+    <ClCompile Include="..\CrystalsKyber\ref\indcpa.c" />
+    <ClCompile Include="..\CrystalsKyber\ref\kem.c" />
+    <ClCompile Include="..\CrystalsKyber\ref\ntt.c" />
+    <ClCompile Include="..\CrystalsKyber\ref\poly.c" />
+    <ClCompile Include="..\CrystalsKyber\ref\polyvec.c" />
+    <ClCompile Include="..\CrystalsKyber\ref\randombytes.c" />
+    <ClCompile Include="..\CrystalsKyber\ref\reduce.c" />
+    <ClCompile Include="..\CrystalsKyber\ref\symmetric-shake.c" />
+    <ClCompile Include="..\src\kyber_verify_wrapper.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\kyber\ref\cbd.c" />
-    <ClCompile Include="..\..\..\kyber\ref\fips202.c" />
-    <ClCompile Include="..\..\..\kyber\ref\indcpa.c" />
-    <ClCompile Include="..\..\..\kyber\ref\kem.c" />
-    <ClCompile Include="..\..\..\kyber\ref\ntt.c" />
-    <ClCompile Include="..\..\..\kyber\ref\poly.c" />
-    <ClCompile Include="..\..\..\kyber\ref\polyvec.c" />
-    <ClCompile Include="..\..\..\kyber\ref\randombytes.c" />
-    <ClCompile Include="..\..\..\kyber\ref\reduce.c" />
-    <ClCompile Include="..\..\..\kyber\ref\symmetric-shake.c" />
-    <ClCompile Include="..\..\..\kyber\ref\verify.c" />
+    <ClInclude Include="..\CrystalsKyber\ref\api.h" />
+    <ClInclude Include="..\CrystalsKyber\ref\cbd.h" />
+    <ClInclude Include="..\CrystalsKyber\ref\fips202.h" />
+    <ClInclude Include="..\CrystalsKyber\ref\indcpa.h" />
+    <ClInclude Include="..\CrystalsKyber\ref\kem.h" />
+    <ClInclude Include="..\CrystalsKyber\ref\ntt.h" />
+    <ClInclude Include="..\CrystalsKyber\ref\params.h" />
+    <ClInclude Include="..\CrystalsKyber\ref\poly.h" />
+    <ClInclude Include="..\CrystalsKyber\ref\polyvec.h" />
+    <ClInclude Include="..\CrystalsKyber\ref\randombytes.h" />
+    <ClInclude Include="..\CrystalsKyber\ref\reduce.h" />
+    <ClInclude Include="..\CrystalsKyber\ref\symmetric.h" />
+    <ClInclude Include="..\CrystalsKyber\ref\verify.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
