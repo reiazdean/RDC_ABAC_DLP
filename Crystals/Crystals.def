@@ -1,0 +1,7 @@
+; Crystals.def : Declares the module parameters for the DLL.
+
+LIBRARY      "Crystals"
+
+EXPORTS
+    ; Explicit exports can go here
+    GetCrystalsInterface

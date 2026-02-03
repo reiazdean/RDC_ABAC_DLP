@@ -1,0 +1,107 @@
+📄 COMMERCIAL LICENSE AGREEMENT
+For Enterprise Use of "Attribute Based Access Control For Digital Loss Prevention(ABAC4DLP)"
+Copyright (c) 2026 REIAZDEAN CONSULTING INC.
+________________________________________
+1. Definitions
+“Software” means the proprietary, commercially licensed version of , including source code, binaries, documentation, updates, and any related materials provided under this Agreement.
+“Licensee” means the organization obtaining rights under this Agreement.
+“Authorized Users” means employees and contractors of Licensee who are permitted to use the Software.
+“Support Services” means the technical support, maintenance, and security updates provided by Licensor under Section 7.
+“Production Use” means use of the Software in live, customer facing, revenue generating, or mission critical systems.
+“Internal Use” means use of the Software solely within Licensee’s organization.
+________________________________________
+2. License Grant
+Subject to the terms of this Agreement, Licensor grants Licensee a non exclusive, non transferable, non sublicensable license to:
+1.	Install and use the Software for internal business purposes
+2.	Modify the Software for internal use
+3.	Deploy the Software in production environments
+4.	Distribute modified or unmodified versions of the Software internally within Licensee’s organization
+No rights are granted except those expressly stated.
+________________________________________
+3. Restrictions
+Licensee may not:
+•	Redistribute, sell, or sublicense the Software to third parties
+•	Offer the Software as a hosted or cloud based service
+•	Use the Software to build a competing product
+•	Remove or alter copyright notices
+•	Reverse engineer the Software except where required by law
+Any use outside these terms requires a separate written agreement.
+________________________________________
+4. Ownership
+The Software is licensed, not sold.
+Licensor retains all intellectual property rights in the Software, including modifications made by Licensee. Licensee retains ownership of its own proprietary extensions that do not incorporate Licensor’s code.
+________________________________________
+5. Fees and Payment
+Licensee agrees to pay the fees specified in the applicable order form or invoice.
+All fees are:
+•	non refundable
+•	exclusive of taxes
+•	due within 30 days of invoice
+Late payments may incur interest at 1.5% per month.
+________________________________________
+6. Term and Termination
+This Agreement begins on the Effective Date and continues for one year, renewing automatically unless either party provides 30 days’ notice.
+Licensor may terminate this Agreement immediately if Licensee:
+•	breaches any material term
+•	fails to pay fees
+•	attempts to sublicense or resell the Software
+Upon termination:
+•	Licensee must stop using the Software
+•	All copies must be destroyed
+•	Licensee may retain archival backups for compliance purposes only
+________________________________________
+7. Support and Maintenance
+During the term of this Agreement, Licensor will provide:
+7.1 Security Updates
+•	Critical security patches
+•	Vulnerability disclosures
+•	CVE tracking and remediation
+7.2 Technical Support
+•	Email support
+•	Severity based response times
+•	Assistance with configuration, deployment, and troubleshooting
+7.3 Version Updates
+•	Minor and patch releases
+•	Major releases at Licensor’s discretion
+Optional premium support tiers may be purchased separately.
+________________________________________
+8. Warranties and Disclaimers
+Licensor warrants that:
+•	It has the right to license the Software
+•	The Software will materially perform as described in the documentation
+Except for the above, the Software is provided “as is” without additional warranties.
+Licensor does not warrant that:
+•	The Software will be error free
+•	The Software will meet Licensee’s requirements
+•	All defects will be corrected
+________________________________________
+9. Indemnification
+Licensor will defend and indemnify Licensee against third party claims alleging that the Software infringes intellectual property rights, provided that:
+•	Licensee promptly notifies Licensor
+•	Licensor controls the defense
+•	Licensee cooperates
+Licensor may, at its option:
+•	Modify the Software
+•	Replace the Software
+•	Terminate the Agreement and refund unused fees
+This section does not apply to:
+•	modifications made by Licensee
+•	combinations with third party software
+•	use outside the scope of this Agreement
+________________________________________
+10. Limitation of Liability
+To the maximum extent permitted by law:
+•	Licensor’s total liability is limited to the fees paid by Licensee in the previous 12 months
+•	Licensor is not liable for indirect, incidental, or consequential damages
+________________________________________
+11. Confidentiality
+Both parties agree to protect confidential information using reasonable measures and not disclose it to third parties except as required by law.
+________________________________________
+12. Governing Law
+This Agreement is governed by the laws of Ontario, Canada, without regard to conflict of law principles.
+________________________________________
+13. Entire Agreement
+This Agreement constitutes the entire understanding between the parties and supersedes all prior agreements regarding the Software.
+________________________________________
+
+
