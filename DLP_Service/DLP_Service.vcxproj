@@ -120,7 +120,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>OS_WIN32;AUTH_SERVICE;SECURITY_WIN32</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\..\openssl\include;;..\include;..\include\RSA;.\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\openssl\include;..\include;..\include\RSA;.\</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
