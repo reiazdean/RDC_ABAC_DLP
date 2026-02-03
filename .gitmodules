@@ -4,3 +4,6 @@
 [submodule "CrystalsDilithium"]
 	path = CrystalsDilithium
 	url = https://github.com/pq-crystals/dilithium.git
+[submodule "openssl"]
+	path = openssl
+	url = https://github.com/openssl/openssl.git
