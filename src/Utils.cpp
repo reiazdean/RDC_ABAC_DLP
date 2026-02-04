@@ -3287,6 +3287,10 @@ IsUserDomainAdmin() {
     DWORD size = 0;
     GetTokenInformation(token, TokenGroups, nullptr, 0, &size);
     PTOKEN_GROUPS groups = (PTOKEN_GROUPS)malloc(size);
+    if (!groups) {
+        CloseHandle(token);
+        return false;
+    }
 
     if (!GetTokenInformation(token, TokenGroups, groups, size, &size)) {
         CloseHandle(token);

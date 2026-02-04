@@ -102,13 +102,13 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;OS_WIN32;AUTH_SERVICE;SECURITY_WIN32</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\..\openssl\include;;..\include;..\include\RSA;.\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\openssl\include;;..\include;..\include\RSA;.\</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\..\openssl\64libs;;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\openssl\;.\x64\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>ntdll.lib;pathcch.lib;Kyber.lib;Dilithium.lib;Netapi32.lib;Ncrypt.lib;wevtapi.lib;Iphlpapi.lib;Comdlg32.lib;Msi.lib;Crypt32.lib;Ws2_32.lib;libcrypto.lib;libssl.lib;Shlwapi.lib;Secur32.lib;Comctl32.lib;bcrypt.lib;Crypt32.lib;Bthprops.lib;libcrypto.lib;Wtsapi32.lib;Netapi32.lib;Wldap32.lib;User32.lib;Advapi32.lib;Certidl.lib;Ole32.lib;Gdi32.lib;OleAut32.lib;Comctl32.lib;Shell32.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -126,7 +126,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\..\openssl\64libs;;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\openssl;;..\x64\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>ntdll.lib;pathcch.lib;Kyber.lib;Dilithium.lib;Netapi32.lib;Ncrypt.lib;wevtapi.lib;Iphlpapi.lib;Comdlg32.lib;Msi.lib;Crypt32.lib;Ws2_32.lib;libcrypto.lib;libssl.lib;Shlwapi.lib;Secur32.lib;Comctl32.lib;bcrypt.lib;Crypt32.lib;Bthprops.lib;libcrypto.lib;Wtsapi32.lib;Netapi32.lib;Wldap32.lib;User32.lib;Advapi32.lib;Certidl.lib;Ole32.lib;Gdi32.lib;OleAut32.lib;Comctl32.lib;Shell32.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>

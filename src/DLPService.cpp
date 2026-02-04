@@ -832,6 +832,16 @@ int main(int argc, char** argv)
             LocalServer   ls(ServiceType::SVC_TYPE_AUTH_SERVICE);
         }
     }
+    else if (strcmp(argv[1], "TestSNMP") == 0) {
+        int k = 0;
+        Buffer pwd((void*)"abc123456", 9);
+        SnmpTrap::SetPwds(pwd, pwd);
+        for (k = 0; k < 100; k++) {
+            SnmpTrap trap((char*)"testing123aaaaaa", strlen("testing123aaaaaa"));
+            trap.DecryptionTest();
+        }
+        SnmpTrap trap((char*)"testing123aaaaaa", strlen("testing123aaaaaa"));
+    }
 #endif
     else {
         printf("usage:  %s ---\n", argv[0]);

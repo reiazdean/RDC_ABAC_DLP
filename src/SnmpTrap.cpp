@@ -94,7 +94,7 @@ bool
 CreateHash(
     WCHAR* pwcALG,
     BCRYPT_ALG_HANDLE& hAlg,
-    PBYTE& pbHashObject,
+    uint8_t* bHashObject,
     DWORD& cbHashObject,
     BCRYPT_HASH_HANDLE& hHash)
 {
@@ -102,38 +102,33 @@ CreateHash(
     DWORD cbHash = 0;
     DWORD status = NTE_FAIL;
 
+    cbHashObject = 0;
+    memset(bHashObject, 0, MAGIC_SZ);
+
     status = BCryptOpenAlgorithmProvider(&hAlg, BCRYPT_SHA1_ALGORITHM, NULL, 0);
     if (status == ERROR_SUCCESS) {
         status = BCryptGetProperty(hAlg, BCRYPT_OBJECT_LENGTH, (PBYTE)&cbHashObject, sizeof(DWORD), &cbData, 0);
     }
-
+    
     if (status == ERROR_SUCCESS) {
-        pbHashObject = (PBYTE)calloc(cbHashObject, 1);
-    }
-
-    if (pbHashObject) {
-        if (ERROR_SUCCESS == BCryptCreateHash(hAlg, &hHash, pbHashObject, cbHashObject, NULL, 0, 0)) {
-            return true;
+        if (cbHashObject < MAGIC_SZ) {
+            if (ERROR_SUCCESS == BCryptCreateHash(hAlg, &hHash, (uint8_t*)bHashObject, cbHashObject, NULL, 0, 0)) {
+                return true;
+            }
         }
     }
-
+    
     return false;
 }
 
 void
 DestroyHash(
     BCRYPT_HASH_HANDLE& hHash,
-    BCRYPT_ALG_HANDLE& hAlg,
-    PBYTE& pbHashObject)
+    BCRYPT_ALG_HANDLE& hAlg)
 {
     if (hHash) {
         BCryptDestroyHash(hHash);
         hHash = NULL;
-    }
-
-    if (pbHashObject) {
-        free(pbHashObject);
-        pbHashObject = NULL;
     }
 
     if (hAlg) {
@@ -156,14 +151,14 @@ password_to_key_sha(
     DWORD cbData = 0;
     DWORD cbHash = 20;
     DWORD cbHashObject = 0;
-    PBYTE pbHashObject = NULL;
+    uint8_t bHashObject[MAGIC_SZ];
     BYTE bHash[20];
 
     uint8_t* cp, password_buf[72];
     uint32_t      password_index = 0;
     uint32_t      count = 0, i;
 
-    if (!CreateHash((WCHAR*)BCRYPT_SHA1_ALGORITHM, hAlg, pbHashObject, cbHashObject, hHash)) {
+    if (!CreateHash((WCHAR*)BCRYPT_SHA1_ALGORITHM, hAlg, bHashObject, cbHashObject, hHash)) {
         return false;
     }
 
@@ -180,13 +175,13 @@ password_to_key_sha(
             *cp++ = password[password_index++ % passwordlen];
         }
         if (BCryptHashData(hHash, password_buf, 64, 0) != ERROR_SUCCESS) {
-            DestroyHash(hHash, hAlg, pbHashObject);
+            DestroyHash(hHash, hAlg);
             return false;
         }
         count += 64;
     }
     if (BCryptFinishHash(hHash, bHash, cbHash, 0) != ERROR_SUCCESS) {
-        DestroyHash(hHash, hAlg, pbHashObject);
+        DestroyHash(hHash, hAlg);
         return false;
     }
     //LogBinary(FP, (uint8_t*)"kul:", bHash, cbHash);
@@ -201,14 +196,14 @@ password_to_key_sha(
     memcpy(password_buf + 20, engineID, engineLength);
     memcpy(password_buf + 20 + engineLength, bHash, 20);
 
-    DestroyHash(hHash, hAlg, pbHashObject);
+    DestroyHash(hHash, hAlg);
 
-    if (CreateHash((WCHAR*)BCRYPT_SHA1_ALGORITHM, hAlg, pbHashObject, cbHashObject, hHash)) {
+    if (CreateHash((WCHAR*)BCRYPT_SHA1_ALGORITHM, hAlg, bHashObject, cbHashObject, hHash)) {
         status = BCryptHashData(hHash, password_buf, 40 + engineLength, 0);
         if (status == ERROR_SUCCESS) {
             status = BCryptFinishHash(hHash, key, cbHash, 0);
         }
-        DestroyHash(hHash, hAlg, pbHashObject);
+        DestroyHash(hHash, hAlg);
         // LogBinary(FP, (uint8_t*)"kul:", key, cbHash);
         return (status == ERROR_SUCCESS);
     }
@@ -394,7 +389,6 @@ int8_t SnmpTrap::AES_CFB_Encrypt(const uint8_t* plaintext, uint32_t len, Buffer&
     int32_t      p_len = len;
     int32_t      f_len = 0;
     EVP_CIPHER_CTX* ctx = 0;
-    uint8_t* pCipher = nullptr;
 
     ctx = EVP_CIPHER_CTX_new();
     if (!ctx) {
@@ -403,14 +397,9 @@ int8_t SnmpTrap::AES_CFB_Encrypt(const uint8_t* plaintext, uint32_t len, Buffer&
 
     bOut.Clear();
     if (EVP_EncryptInit_ex(ctx, EVP_aes_128_cfb(), 0, m_AESkey, m_IV)) {
-        pCipher = (uint8_t*)calloc(p_len, 1);
-        if (pCipher) {
-            if (EVP_EncryptUpdate(ctx, pCipher, &p_len, plaintext, len)) {
-                bOut.Append(pCipher, len);
-            }
-            else {
-                free(pCipher);
-            }
+        Buffer bCipher(p_len);
+        if (EVP_EncryptUpdate(ctx, (uint8_t*)bCipher, &p_len, plaintext, len)) {
+            bOut.Append((uint8_t*)bCipher, p_len);
         }
     }
 
@@ -423,7 +412,6 @@ int8_t SnmpTrap::AES_CFB_Decrypt(const uint8_t* ciphertext, uint32_t len, Buffer
     int32_t      p_len = len;
     int32_t      f_len = 0;
     EVP_CIPHER_CTX* ctx = 0;
-    uint8_t* pPlain = nullptr;
 
     ctx = EVP_CIPHER_CTX_new();
     if (!ctx) {
@@ -432,14 +420,9 @@ int8_t SnmpTrap::AES_CFB_Decrypt(const uint8_t* ciphertext, uint32_t len, Buffer
 
     bOut.Clear();
     if (EVP_DecryptInit_ex(ctx, EVP_aes_128_cfb(), 0, m_AESkey, m_IV)) {
-        pPlain = (uint8_t*)calloc(p_len, 1);
-        if (pPlain) {
-            if (EVP_DecryptUpdate(ctx, pPlain, &p_len, ciphertext, len)) {
-                bOut.Append(pPlain, len);
-            }
-            else {
-                free(pPlain);
-            }
+        Buffer bPlain(p_len);
+        if (EVP_DecryptUpdate(ctx, (uint8_t*)bPlain, &p_len, ciphertext, len)) {
+            bOut.Append((uint8_t*)bPlain, p_len);
         }
     }
 
