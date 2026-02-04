@@ -23,6 +23,7 @@
 #define ID_UPLOAD_FILE          118
 #define ID_REMOTE_VERIFY_FILE   119
 #define IDC_APPLICATIONS_LIST   120
+#define IDC_DECLASSIFY_FILE     121
 #define IDC_MYICON				2
 #ifndef IDC_STATIC
 #define IDC_STATIC				-1

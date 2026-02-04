@@ -74,7 +74,7 @@ std::atomic<SOCKET> SandboxSocket = 0;
 #define LEFT_INSET				100
 #define TOP_INSET				10
 #define RIGHT_INSET             25
-#define INFO_BUFFER_SIZE		32767
+#define INFO_BUFFER_SIZE		2048
 #define	MAX_UNLICNESED_USERS	16
 
 #define BORDER_SZ               1
@@ -83,6 +83,7 @@ std::atomic<SOCKET> SandboxSocket = 0;
 #define STRING_SZ               128
 #define INFO_STRING_SZ          1024
 
+#define MAX_SMALL_ICONS         1024
 #define CLASSIFIED_ICON         109
 #define START_ICON              299
 #define INSTALLER_ICON          130
@@ -178,7 +179,7 @@ Widget RemoteStatusWidget;
 Widget LocalStatusWidget;
 Widget UserPrincipalWidget;
 
-int                 hwndIconIndices[NUM_TOOLBAR_BUTTONS] = {
+int hwndIconIndices[NUM_TOOLBAR_BUTTONS] = {
     238,
     194,
     207,
@@ -193,7 +194,7 @@ HIMAGELIST hAppImages = 0;
 HIMAGELIST hInstalledAppsImgList = 0;
 HICON hAppIcon = 0;
 
-HICON* hSmallIcons = NULL;
+HICON hSmallIcons[MAX_SMALL_ICONS];
 UINT numIcons = 0;
 UINT numUsers = 0;
 
@@ -1349,6 +1350,9 @@ int WINAPI wWinMain(
             if (MyLocalClient) {
                 threadPool::queueThread((void*)MonitorFirewall, (void*)GatewayIP);
             }
+            else {
+                exit(-1);//can't create this inside the sandbox so die
+            }
         }
         catch (...) {
             exit(-1);
@@ -1415,9 +1419,6 @@ int WINAPI wWinMain(
         if (hSmallIcons[i])
             DestroyIcon(hSmallIcons[i]);
     }
-
-    if (hSmallIcons)
-        free(hSmallIcons);
 
     if (hOldHKL)
         hOldHKL = ActivateKeyboardLayout(hOldHKL, KLF_SETFORPROCESS);
@@ -1533,13 +1534,9 @@ BOOL InitTreeViewImageLists(HINSTANCE hInstance)
     BOOL bRc = FALSE;
     int i = 0;
     int limit = 0;
-    WCHAR* infoBuf = NULL;
+    WCHAR infoBuf[INFO_BUFFER_SIZE];
 
-    infoBuf = (WCHAR*)calloc(INFO_BUFFER_SIZE, sizeof(WCHAR));
-    if (infoBuf == NULL) {
-        goto doneInitImages;
-    }
-
+    memset(infoBuf, 0, sizeof(infoBuf));
     if (!GetSystemDirectory(infoBuf, INFO_BUFFER_SIZE)) {
         goto doneInitImages;
     }
@@ -1550,11 +1547,12 @@ BOOL InitTreeViewImageLists(HINSTANCE hInstance)
         goto doneInitImages;
     }
 
-    hSmallIcons = (HICON*)calloc(numIcons, sizeof(HICON));
-    if (hSmallIcons == NULL) {
+    if (numIcons > MAX_SMALL_ICONS) {
         goto doneInitImages;
     }
 
+    memset(hSmallIcons, 0, sizeof(hSmallIcons));
+    
     ExtractIconEx(infoBuf, 0, NULL, hSmallIcons, numIcons);
 
     // Create the image list. 
@@ -1595,19 +1593,12 @@ BOOL InitTreeViewImageLists(HINSTANCE hInstance)
 
 doneInitImages:
 
-    if (infoBuf)
-        free(infoBuf);
-
     if (bRc == FALSE)
     {
-        if (hSmallIcons)
+        for (i = 0; i < (int)numIcons; i++)
         {
-            for (i = 0; i < (int)numIcons; i++)
-            {
-                if (hSmallIcons[i])
-                    DestroyIcon(hSmallIcons[i]);
-            }
-            free(hSmallIcons);
+            if (hSmallIcons[i])
+                DestroyIcon(hSmallIcons[i]);
         }
         MessageBox(NULL, (WCHAR*)L"Error :Failed to load resources from shell.dll. Exiting application!", (WCHAR*)L"Error", MB_OK);
         exit(-1);
