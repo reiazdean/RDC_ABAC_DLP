@@ -44,6 +44,27 @@ SSL_CTX* TLSServerContext::CreateContext()
 {
     const    SSL_METHOD* method = TLS_server_method();
     SSL_CTX* ctx = SSL_CTX_new(method);
+    if (ctx) {
+        SSL_CTX_set_min_proto_version(ctx, TLS1_2_VERSION);
+        SSL_CTX_set_max_proto_version(ctx, TLS1_3_VERSION);
+
+        if (!SSL_CTX_set_ciphersuites(ctx,
+            "TLS_AES_256_GCM_SHA384:"
+            "TLS_CHACHA20_POLY1305_SHA256:"
+            "TLS_AES_128_GCM_SHA256")) {
+            ERR_print_errors_fp(stderr);
+            exit(EXIT_FAILURE);
+        }
+
+        if (!SSL_CTX_set_cipher_list(ctx,
+            "ECDHE-RSA-AES256-GCM-SHA384:"
+            "ECDHE-RSA-AES128-GCM-SHA256")) {
+            ERR_print_errors_fp(stderr);
+            exit(EXIT_FAILURE);
+        }
+
+    }
+    
     return ctx;
 }
 
@@ -116,6 +137,9 @@ bool TLSServerContext::DoTlsServer(SOCKET sock, Buffer& bPwd)
         exit(EXIT_FAILURE);
     }
 
+    // Drop back to OpenSSL 3.1-style policy
+    //SSL_CTX_set_security_level(s_ctx, 1);
+
     /* Set the key and cert */
     if (SSL_CTX_use_certificate_file(s_ctx, (char*)bServerCert, SSL_FILETYPE_PEM) <= 0) {
         ERR_print_errors_fp(stderr);
@@ -125,11 +149,6 @@ bool TLSServerContext::DoTlsServer(SOCKET sock, Buffer& bPwd)
     SSL_CTX_set_default_passwd_cb(s_ctx, (pem_password_cb*)my_cb);
 
     if (SSL_CTX_use_PrivateKey_file(s_ctx, (char*)bServerPK, SSL_FILETYPE_PEM) <= 0) {
-        ERR_print_errors_fp(stderr);
-        exit(EXIT_FAILURE);
-    }
-
-    if (SSL_CTX_set_dh_auto(s_ctx, 1) <= 0) {
         ERR_print_errors_fp(stderr);
         exit(EXIT_FAILURE);
     }

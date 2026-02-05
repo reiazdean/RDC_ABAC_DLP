@@ -46,7 +46,24 @@ SSL_CTX* TLSClientContext::CreateContext()
 	}
 
 	if (ctx) {
-		SSL_CTX_set_cipher_list(ctx, "AES256-SHA");
+		SSL_CTX_set_min_proto_version(ctx, TLS1_2_VERSION);
+		SSL_CTX_set_max_proto_version(ctx, TLS1_3_VERSION);
+
+		if (!SSL_CTX_set_ciphersuites(ctx,
+			"TLS_AES_256_GCM_SHA384:"
+			"TLS_CHACHA20_POLY1305_SHA256:"
+			"TLS_AES_128_GCM_SHA256")) {
+			ERR_print_errors_fp(stderr);
+			exit(EXIT_FAILURE);
+		}
+
+		if (!SSL_CTX_set_cipher_list(ctx,
+			"ECDHE-RSA-AES256-GCM-SHA384:"
+			"ECDHE-RSA-AES128-GCM-SHA256")) {
+			ERR_print_errors_fp(stderr);
+			exit(EXIT_FAILURE);
+		}
+		
 		if (SSL_CTX_load_verify_locations(ctx, (char*)bCAcert, 0)) {
 			SSL_CTX_set_verify_depth(ctx, 1);
 			return ctx;
