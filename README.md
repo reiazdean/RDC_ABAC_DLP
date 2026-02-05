@@ -24,7 +24,7 @@ You must first build OpenSSL as follows.
 3.	Download NASM installer from https://www.nasm.us/pub/nasm/releasebuilds/3.01rc9/win64/
 4.      Install NASM.
 5.	Open a Microsoft Visual Studio x64 Native Command Prompt
-6.	cd <YourRepo>\RDC_ABAC_DLP\openssl
+6.	cd [YourRepoPath]\RDC_ABAC_DLP\openssl
 7.	perl Configure VC-WIN64A no-shared no-module no-tests
 8.	nmake
 
