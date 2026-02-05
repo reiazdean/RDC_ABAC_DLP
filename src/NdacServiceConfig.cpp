@@ -112,7 +112,6 @@ bool NdacServerConfig::DownloadCAcert(Buffer& bCert)
         }
         bPEM.Prepend((void*)"-----BEGIN CERTIFICATE-----\n", strlen("-----BEGIN CERTIFICATE-----\n"));
         bPEM.Append((void*)"-----END CERTIFICATE-----\n", strlen("-----END CERTIFICATE-----\n"));
-        bPEM.NullTerminate();
         bCAcert = bPEM;
     }
 
@@ -504,7 +503,6 @@ bool NdacServerConfig::DeployServerCertificate(char* pcP7bFile)
                 }
                 bPEM.Prepend((void*)"-----BEGIN CERTIFICATE-----\n", strlen("-----BEGIN CERTIFICATE-----\n"));
                 bPEM.Append((void*)"-----END CERTIFICATE-----\n", strlen("-----END CERTIFICATE-----\n"));
-                bPEM.NullTerminate();
                 if (saveToFile((int8_t*)bServerCertFileName, (int8_t*)bPEM, bPEM.Size()) == 0) {
                     printf("Failed to save server certificate %s!\n", (char*)bServerCertFileName);
                     return false;
@@ -522,7 +520,6 @@ bool NdacServerConfig::DeployServerCertificate(char* pcP7bFile)
                     }
                     bPEM.Prepend((void*)"-----BEGIN CERTIFICATE-----\n", strlen("-----BEGIN CERTIFICATE-----\n"));
                     bPEM.Append((void*)"-----END CERTIFICATE-----\n", strlen("-----END CERTIFICATE-----\n"));
-                    bPEM.NullTerminate();
                     if (saveToFile((int8_t*)bCAcertFileName, (int8_t*)bPEM, bPEM.Size()) == 0) {
                         printf("Failed to save CA certificate %s!\n", (char*)bCAcertFileName);
                         return false;
