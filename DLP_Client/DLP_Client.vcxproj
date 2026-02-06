@@ -102,7 +102,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions);OS_WIN32_GUI;OS_WIN32;SECURITY_WIN32</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\openssl\include;;..\include;..\include\RSA;.\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\openssl\include;..\include;..\include\RSA;.\;..\CrystalsDilithium\ref;..\CrystalsKyber\ref</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
@@ -122,7 +122,7 @@
       <PreprocessorDefinitions>_WINDOWS;%(PreprocessorDefinitions);OS_WIN32_GUI;OS_WIN32;SECURITY_WIN32</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\openssl\include;;..\include;..\include\RSA;.\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\openssl\include;..\include;..\include\RSA;.\;..\CrystalsDilithium\ref;..\CrystalsKyber\ref</AdditionalIncludeDirectories>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <Link>

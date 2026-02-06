@@ -12,8 +12,8 @@ http://www.apache.org/licenses/LICENSE-2.0
 #undef API_H
 #undef KEM_H
 extern "C" {
-#include "Kyber/api.h"
-#include "Kyber/kem.h"
+#include "../CrystalsKyber/ref/api.h"
+#include "../CrystalsKyber/ref/kem.h"
 }
 #include "Utils.h"
 #include "KyberKeyPair.h"
