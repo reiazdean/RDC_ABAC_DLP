@@ -13,10 +13,10 @@ http://www.apache.org/licenses/LICENSE-2.0
 #undef API_H
 #undef PARAMS_H
 extern "C" {
-#include "Dilithium/api.h"
-#include "Dilithium/params.h"
-#include "Dilithium/sign.h"
-#include "Dilithium/randombytes.h"   // Random generator
+#include "../CrystalsDilithium/ref/api.h"
+#include "../CrystalsDilithium/ref/params.h"
+#include "../CrystalsDilithium/ref/sign.h"
+#include "../CrystalsDilithium/ref/randombytes.h"   // Random generator
 }
 
 using namespace ReiazDean;
