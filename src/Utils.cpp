@@ -20,6 +20,8 @@ Modifications Copyright (c) 2026 REIAZDEAN CONSULTING INC.
 #include "TLSContext.h"
 #include "MyKeyManager.h"
 #include "SnmpTrap.h"
+#include "clusterServiceManager.h"
+#include "clusterClientManager.h"
 
 #define		TABLE_SZ		65
 
@@ -3159,8 +3161,15 @@ KSPwrapClientCertAndSigForDoc(
     SECURITY_STATUS ss = NTE_FAIL;
     Buffer bHash;
     Buffer bSig;
-
+    ClusterManager* cm;
+#ifdef AUTH_SERVICE
+    return 0;
+#else
+    ClusterClientManager& ccm = ClusterClientManager::GetInstance();
+    cm = &ccm;
+        
     try {
+        Buffer bTSsig;
         bCertAndSig.Clear();
 
         if (!pwcKeyName) {
@@ -3180,20 +3189,13 @@ KSPwrapClientCertAndSigForDoc(
         }
 
         if (ERROR_SUCCESS == ss) {
-            bSig.ASN1Wrap(UNIVERSAL_TYPE_OCTETSTR);
-            bCertAndSig.Append(bSig);
-            bSig.Append((void*)&encSize, sizeof(encSize));
-            bHash.Clear();
-            Sha256((uint8_t*)bSig, bSig.Size(), bHash);
-            bSig.Clear();
-            ss = ksp.SignHash((uint8_t*)bHash, bHash.Size(), bSig);
-        }
-
-        if (ERROR_SUCCESS == ss) {
-            bSig.ASN1Wrap(UNIVERSAL_TYPE_OCTETSTR);
-            bCertAndSig.Append(bSig);
-            bCertAndSig.ASN1Wrap(CONSTRUCTED_SEQUENCE);
-            return bCertAndSig.Size();
+            if (ccm.GetTimeStampSig(bSig, bTSsig)) {
+                bSig.ASN1Wrap(UNIVERSAL_TYPE_OCTETSTR);
+                bCertAndSig.Append(bSig);
+                bCertAndSig.Append(bTSsig);
+                bCertAndSig.ASN1Wrap(CONSTRUCTED_SEQUENCE);
+                return bCertAndSig.Size();
+            }
         }
     }
     catch (...) {
@@ -3202,6 +3204,7 @@ KSPwrapClientCertAndSigForDoc(
     }
 
     return 0;
+#endif
 }
 
 bool

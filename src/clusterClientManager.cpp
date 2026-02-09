@@ -225,3 +225,39 @@ bool ClusterClientManager::IsSandboxedClient()
     
     return true;
 }
+
+bool ClusterClientManager::GetTimeStampSig(Buffer bData, Buffer& bTSSig)
+{
+    ResponseHeader* prh;
+
+    try {
+        Buffer mbr;
+        CommandHeader ch = { CMD_TIMESTAMP_SIGN, bData.Size() };
+        if (RoundRobin(mbr)) {
+            TLSClientContext client;
+            condition_variable cv;
+            Buffer bCmd, bResp;
+            bCmd.Append((void*)&ch, sizeof(CommandHeader));
+            bCmd.Append(bData);
+            if (OsslClientHelper::QueueCommand(client, bCmd, mbr, bResp, cv)) {
+                std::unique_lock<std::mutex> mlock(m_MutexVar);
+                cv.wait(mlock);
+                prh = (ResponseHeader*)bResp;
+                if (prh->response == RSP_SUCCESS) {
+                    uint8_t* pChar = (uint8_t*)bResp + sizeof(ResponseHeader);
+                    if (prh->szData > 0) {
+                        bTSSig.Append((void*)pChar, prh->szData);
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    catch (...) {
+        bTSSig.Clear();
+        return false;
+    }
+
+    return false;
+}
+

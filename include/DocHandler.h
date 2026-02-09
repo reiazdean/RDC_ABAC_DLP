@@ -39,7 +39,7 @@ namespace ReiazDean {
         Buffer                         m_Certificate;
         Buffer                         m_UPN;
         Buffer                         m_Signature;
-        Buffer                         m_SignatureOfSignature;
+        Buffer                         m_TimeStampSignature;
         Buffer                         m_MCS;
         uint16_t                       m_MLS;
         Buffer                         m_HsmKeyName;
@@ -64,12 +64,13 @@ namespace ReiazDean {
         DocHandler&                    operator=(const DocHandler& original) = delete;
         DocHandler&                    operator=(DocHandler&& original) = delete;
         HANDLE                         GetLockHandle() { return m_LockHandle; };
+        bool                           GetTimeStamp(time_t& when);
         void                           PrintOn(WCHAR* pwcBuf, uint32_t sz);
         char*                          GetApplication() { return (char*)m_Application; };
         bool                           OpenDocument(wchar_t* pcDocName, bool bLock = false);
         bool                           OpenUnprotectedDocument(wchar_t* pcDocName, bool bLock = false);
         bool                           DecryptVerify(FILE* fOut, std::shared_ptr<NotifyView> notifier = nullptr);
-        bool                           PartialVerify();
+        bool                           TimeStampVerify(DilithiumKeyPair& dilKey);
         bool                           GetAuthRequest(AuthorizationRequest& ar);
         void                           SetAuthResponse(const AuthorizationResponse& ar);
         bool                           ProtectFile(wchar_t* sDocName, wchar_t* outDoc, wchar_t* sApp,

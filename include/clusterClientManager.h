@@ -35,6 +35,7 @@ namespace ReiazDean {
 		ClusterClientManager& operator=(ClusterClientManager&& original) = delete;
 		void UpdateMembers(Buffer& bMbrs);
 		bool IsSandboxedClient();
+		bool GetTimeStampSig(Buffer bData, Buffer& bSig);
 	};
 }
 

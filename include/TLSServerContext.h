@@ -70,6 +70,7 @@ namespace ReiazDean {
         bool              SendSandboxScript(Buffer& b);
         bool              SendSecrets(Buffer& bRecvSend);
         bool              SendClusterMembers(Buffer& bRecvSend);
+        bool              SendTimeStampSign(Buffer& bRecvSend);
         bool              SendEncryptionKey(Mandatory_AC& userMac, Buffer& b);
         bool              SendDecryptionKey(Mandatory_AC& userMac, Buffer& b);
         bool              SaveClassifiedDocument(Mandatory_AC& userMac, Buffer& b);

@@ -245,6 +245,7 @@ WCHAR wcCommandStrings[CMD_NULL + 1][STRING_SZ] = {
     L"CMD_OOB_GET_SC_CERT",
     L"CMD_OOB_SC_SIGN",
     L"CMD_OOB_SC_SIGN_DOC_HASH",
+    L"CMD_TIMESTAMP_SIGN",
     L"CMD_NULL"
 };
 
@@ -2023,7 +2024,8 @@ DeleteIfNotVerified(Buffer& bFile) {
         DocHandler dh;
 
         if (dh.OpenDocument((wchar_t*)bFile)) {
-            bVerified = dh.PartialVerify();
+            DilithiumKeyPair& dpk = TLSContext::GetDilithium();
+            bVerified = dh.TimeStampVerify(dpk);
             dh.Close();
         }
 

@@ -105,6 +105,7 @@ namespace ReiazDean {
         CMD_OOB_GET_SC_CERT,
         CMD_OOB_SC_SIGN,
         CMD_OOB_SC_SIGN_DOC_HASH,
+        CMD_TIMESTAMP_SIGN,
         CMD_NULL
     };
 

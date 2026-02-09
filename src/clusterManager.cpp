@@ -18,7 +18,7 @@ http://www.apache.org/licenses/LICENSE-2.0
 #include "Utils.h"
 #include "clusterManager.h"
 #include "NdacConfig.h"
-#include "TLSClientContext.h"
+#include "OsslClientHelper.h"
 
 using namespace ReiazDean;
 
