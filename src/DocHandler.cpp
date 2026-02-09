@@ -179,16 +179,17 @@ DocHandler::readDocCertAndSig() {
 			m_Signature.Append((uint8_t*)b, sigSz);
 		}
 
-		//read the wrapped signature of signature
+		//read the time stamped signature
 		ch = fgetc(m_FP);
-		if (ch != UNIVERSAL_TYPE_OCTETSTR) {
+		if (ch != CONSTRUCTED_SEQUENCE) {
 			return false;
 		}
 		sigSz = ReadEncodedLength(m_FP);
 		if (sigSz > 0) {
 			Buffer b(sigSz);
 			fread((char*)b, 1, sigSz, m_FP);
-			m_SignatureOfSignature.Append((uint8_t*)b, sigSz);
+			m_TimeStampSignature.Append((uint8_t*)b, sigSz);
+			m_TimeStampSignature.ASN1Wrap(CONSTRUCTED_SEQUENCE);
 		}
 
 		return true;
@@ -196,7 +197,7 @@ DocHandler::readDocCertAndSig() {
 	catch (...) {
 		m_Certificate.Clear();
 		m_Signature.Clear();
-		m_SignatureOfSignature.Clear();
+		m_TimeStampSignature.Clear();
 		return false;
 	}
 
@@ -644,7 +645,30 @@ DocHandler::DecryptVerify(FILE* fOut, std::shared_ptr<NotifyView> notifier)
 }
 
 bool
-DocHandler::PartialVerify() {
+DocHandler::GetTimeStamp(time_t& when) {
+	try {
+		if (m_TimeStampSignature.Size() > 0) {
+			SequenceReaderX seq;
+			Buffer bNow;
+			if (seq.Initilaize(m_TimeStampSignature)) {
+				if (seq.getValueAt(0, bNow)) {
+					if (bNow.Size() == sizeof(time_t)) {
+						memcpy(&when, (void*)bNow, bNow.Size());
+						return true;
+					}
+				}
+			}
+		}
+	}
+	catch (...) {
+		return false;
+	}
+
+	return false;
+}
+
+bool
+DocHandler::TimeStampVerify(DilithiumKeyPair& dilKey) {
 	int ret = -1;
 	bool verified = false;
 
@@ -652,25 +676,17 @@ DocHandler::PartialVerify() {
 		if (m_FP) {
 			if (fseek(m_FP, m_EncryptedSz, SEEK_CUR) == 0) {
 				if (readDocCertAndSig()) {
+					SequenceReaderX seq;
 					Buffer bHash;
 					Buffer bTemp(m_Signature);
-					bTemp.ASN1Wrap(UNIVERSAL_TYPE_OCTETSTR);
-					bTemp.Append((void*)&m_EncryptedSz, sizeof(m_EncryptedSz));
-					Sha256((uint8_t*)bTemp, bTemp.Size(), bHash);
-					ret = VerifySignatureCNG(m_Certificate, (uint8_t*)bHash, bHash.Size(),
-						                     (uint8_t*)m_SignatureOfSignature, m_SignatureOfSignature.Size());
-
-					if (ret == 1) {
-#ifdef AUTH_SERVICE
-						NdacServerConfig& nc = NdacServerConfig::GetInstance();
-#else
-						NdacClientConfig& nc = NdacClientConfig::GetInstance();
-#endif
-						{
-							Buffer caCertBundle;
-							caCertBundle.Clear();
-							nc.GetValue(TRUSTED_CA_FILE, caCertBundle);
-							verified = TLSContext::VerifyCertWithBundle((char*)caCertBundle, (uint8_t*)m_Certificate, m_Certificate.Size());
+					if (seq.Initilaize(m_TimeStampSignature)) {
+						Buffer bNow;
+						if (seq.getElementAt(0, bNow)) {
+							Buffer bTSsig;
+							if (seq.getValueAt(1, bTSsig)) {
+								bTemp.Append(bNow);
+								verified = dilKey.Verify(bTemp, bTSsig);
+							}
 						}
 					}
 				}
@@ -1203,16 +1219,29 @@ DocHandler::getUPN()
 void
 DocHandler::PrintOn(WCHAR* pwcBuf, uint32_t sz) {
 	try {
+		time_t when;
+		char buf_t[64];
+		memset(buf_t, 0, sizeof(buf_t));
+		if (GetTimeStamp(when)) {
+			struct tm tm_buf;
+			/* Convert to local time safely on Windows */
+			localtime_s(&tm_buf, &when);
+			/* Format: YYYY-MM-DD HH:MM:SS */
+			strftime(buf_t, sizeof(buf_t), "%Y-%m-%d %H:%M:%S", &tm_buf);
+		}
+		
 		if (pwcBuf && getUPN()) {
 			swprintf_s(pwcBuf, sz,
-				L"Name = %s\r\n%s\r\n%s\r\n%s\r\nApplication = %s\r\nHsmKeyName = %s\r\nUser = %S\r\n",
+				L"Name = %s\r\n%s\r\n%s\r\n%s\r\nApplication = %s\r\nHsmKeyName = %s\r\nUser = %S\r\nTimeStamp = %S",
 				(wchar_t*)m_Name,
 				m_Verified ? L"VERIFIED" : L"NOT VERIFIED",
 				(wchar_t*)m_Version,
 				(wchar_t*)m_Label,
 				(wchar_t*)m_Application,
 				(wchar_t*)m_HsmKeyName,
-				(char*)m_UPN);
+				(char*)m_UPN,
+				buf_t
+				);
 		}
 	}
 	catch (...) {

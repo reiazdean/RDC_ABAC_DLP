@@ -110,6 +110,7 @@ bool OsslClientHelper::ExecuteCmd(TLSClientContext& client, Buffer bCmd, Buffer 
     case CMD_UPLOAD_CERT_REQUEST:
     case CMD_DOWNLOAD_CERTIFICATE:
     case CMD_GET_CLIENT_SANDBOX_SCRIPT:
+    case CMD_TIMESTAMP_SIGN:
         r = client.PartiallyEstablishClient();
         if (r != RSP_SUCCESS) {
             failure.response = r;
@@ -173,6 +174,10 @@ bool OsslClientHelper::ExecuteCmd(TLSClientContext& client, Buffer bCmd, Buffer 
         case CMD_DECLASSIFY_DOCUMENT:
         case CMD_GET_DOCUMENT_TREE:
         case CMD_GET_DOCUMENT_NAMES:
+            bResp = resp;
+            bRc = true;
+            break;
+        case CMD_TIMESTAMP_SIGN:
             bResp = resp;
             bRc = true;
             break;

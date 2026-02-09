@@ -434,6 +434,9 @@ bool TLSServerContext::ProcessCommandEx(Buffer& bRecvSend)
     else if (ch->command == Commands::CMD_EXCHANGE_CLUSTER_MBRS) {
         return SendClusterMembers(bRecvSend);
     }
+    else if (ch->command == Commands::CMD_TIMESTAMP_SIGN) {
+        return SendTimeStampSign(bRecvSend);
+    }
 
     if (!pCLdap.GetAccessControlForUser(m_UPN, userMac)) {
         return SendErrorResponse(RSP_INTERNAL_ERROR, bRecvSend);
@@ -829,6 +832,46 @@ bool TLSServerContext::SendClusterMembers(Buffer& bRecvSend)
     bRecvSend.Append((void*)&respH, sizeof(respH));
     if (respH.response == RSP_SUCCESS) {
         bRecvSend.Append(bMbrs);
+    }
+
+    return true;
+}
+
+bool TLSServerContext::SendTimeStampSign(Buffer& bRecvSend)
+{
+    bool bRc = false;
+    ResponseHeader respH = { RSP_MEMORY_ERROR, 0 };
+    CommandHeader* ch = (CommandHeader*)bRecvSend;
+    uint8_t* pChar = nullptr;
+    Buffer bData;
+    Buffer bSig;
+    Buffer bTSsig;
+    if (ch->szData > 0) {
+        if (bRecvSend.Size() == (sizeof(CommandHeader) + ch->szData)) {
+            Buffer bNow;
+            time_t now;
+            Buffer bHash;
+            pChar = (uint8_t*)bRecvSend + sizeof(CommandHeader);
+            bData.Append((void*)pChar, ch->szData);
+            time(&now);
+            bNow.Append((void*)&now, sizeof(time_t));
+            bNow.ASN1Wrap(UNIVERSAL_TYPE_OCTETSTR);
+            bData.Append((void*)bNow, bNow.Size());
+            if (s_DilithiumKeyPair.Sign(bData, bSig) > 0) {
+                bSig.ASN1Wrap(UNIVERSAL_TYPE_OCTETSTR);
+                bTSsig = bNow;
+                bTSsig.Append(bSig);
+                bTSsig.ASN1Wrap(CONSTRUCTED_SEQUENCE);
+                respH.response = RSP_SUCCESS;
+                respH.szData = bTSsig.Size();
+            }
+        }
+    }
+
+    bRecvSend.Clear();
+    bRecvSend.Append((void*)&respH, sizeof(respH));
+    if (respH.response == RSP_SUCCESS) {
+        bRecvSend.Append(bTSsig);
     }
 
     return true;
@@ -1667,7 +1710,7 @@ bool TLSServerContext::VerifyClassifiedDocument(Mandatory_AC& userMac, Buffer& b
                 respH.response = RSP_FILE_ERROR;
             }
         }
-        else if (dh.PartialVerify()) {
+        else if (dh.TimeStampVerify(s_DilithiumKeyPair)) {
             respH.response = RSP_SUCCESS;
         }
         else {
