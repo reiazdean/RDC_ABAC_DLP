@@ -38,7 +38,7 @@ using std::wstring;
 
 using namespace ReiazDean;
 
-#define             MAX_WANT_TRIES    10
+#define             MAX_WANT_TRIES    20
 #define             MAX_READ_SIZE     1024*4
 #define             MAX_WRITE_SIZE    MAX_READ_SIZE
 #define             CERT_FILE_TYPE_DER 0

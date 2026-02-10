@@ -738,14 +738,14 @@ NonBlockingRead(
     int       tries = 0;
 
     SetToNotBlock(fd);
-    if (Select(fd, timeout, 0, true) != 1) {
+    if (Select(fd, timeout, 0, true) < 0) {
         return -1;
     }
 
     if (SockReadAppend(fd, b) == 0) {
         switch (errno) {
         case EWOULDBLOCK:
-            if (1 != Select(fd, 1, 0, true)) {
+            if (0 > Select(fd, 1, 0, true)) {
                 return -1;
             }
             SockReadAppend(fd, b);
@@ -774,7 +774,7 @@ NonBlockingWriteEx(
     int limit = szMess;
 
     SetToNotBlock(fd);
-    if (Select(fd, timeout, 0, false) != 1) {
+    if (Select(fd, timeout, 0, false) < 0) {
         return -1;
     }
 
@@ -782,7 +782,7 @@ NonBlockingWriteEx(
         written += SockWrite(fd, (char*)pcMessIn + written, minimum(FILE_TRANSFER_CHUNK_SZ, limit - written));
         switch (errno) {
         case EWOULDBLOCK:
-            if (1 != Select(fd, 1, 0, false)) {
+            if (0 > Select(fd, 1, 0, false)) {
                 return -1;
             }
             break;
@@ -3161,12 +3161,10 @@ KSPwrapClientCertAndSigForDoc(
     SECURITY_STATUS ss = NTE_FAIL;
     Buffer bHash;
     Buffer bSig;
-    ClusterManager* cm;
 #ifdef AUTH_SERVICE
     return 0;
 #else
     ClusterClientManager& ccm = ClusterClientManager::GetInstance();
-    cm = &ccm;
         
     try {
         Buffer bTSsig;

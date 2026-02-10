@@ -144,6 +144,7 @@ Buffer* pPasswordBuffer = nullptr;
 
 // Global Variables:
 HCURSOR hWaitCursor = NULL;
+HCURSOR hOldCursor = NULL;
 COLORREF colorRed = RGB(255, 0, 0);
 COLORREF colorGreen = RGB(0, 255, 0);
 COLORREF colorBlue = RGB(0, 0, 255);
@@ -277,6 +278,22 @@ L"RSP_NULL"
 };
 
 WCHAR  WC_STATUS[] = L"Status Output";
+
+void UpProgress()
+{
+    if (hWaitCursor) {
+        hOldCursor = SetCursor(hWaitCursor);
+    }
+    OperationInProgress = true;
+}
+
+void DownProgress()
+{
+    if (hOldCursor) {
+        SetCursor(hOldCursor);
+    }
+    OperationInProgress = false;
+}
 
 bool IsAdmin()
 {
@@ -1245,22 +1262,16 @@ void SignalHandler(int sig)
 
 bool IsSandboxedClient()
 {
-    HCURSOR hOldCursor = NULL;
     bool bRc = true;
     ClusterClientManager& ccm = ClusterClientManager::GetInstance();
 
     EnableWindow(ButtonWidget[0].GetHWnd(), FALSE);
-    if (hWaitCursor) {
-        hOldCursor = SetCursor(hWaitCursor);
-    }
-    OperationInProgress = true;
+    UpProgress();
 
     bRc = ccm.IsSandboxedClient();
 
-    OperationInProgress = false;
-    if (hOldCursor) {
-        hOldCursor = SetCursor(hOldCursor);
-    }
+    DownProgress();
+    
     EnableWindow(ButtonWidget[0].GetHWnd(), !IsAdmin());
 
     return bRc;
@@ -1929,10 +1940,6 @@ bool CreateClassifiedFolders(Buffer& bPerm, Buffer& bTemp)
 
 int GetRemoteDocumentTree()
 {
-    HCURSOR hOldCursor = NULL;
-
-    if (hWaitCursor)
-        hOldCursor = SetCursor(hWaitCursor);
     try {
         TLSClientContext client;
         Buffer resp;
@@ -1959,9 +1966,6 @@ int GetRemoteDocumentTree()
     catch (...) {
         CmdTree.Clear();
     }
-
-    if (hOldCursor)
-        SetCursor(hOldCursor);
 
     return 0;
 }
@@ -2198,7 +2202,6 @@ WhereTo(AuthorizationResponse* pAR, Buffer& bUPN, Buffer& bFolderFile) {
 
 void
 GetRemoteFileNames() {
-    HCURSOR hOldCursor = 0;
     try {
         bool isSwInstaller = false;
         HTREEITEM Parent = 0;
@@ -2241,8 +2244,6 @@ GetRemoteFileNames() {
             Parent = TreeView_GetParent(RemoteTreeWidget.GetHWnd(), Parent);
         }
 
-        if (hWaitCursor)
-            hOldCursor = SetCursor(hWaitCursor);
         {
             TLSClientContext client;
             bool bRc = false;
@@ -2291,19 +2292,14 @@ GetRemoteFileNames() {
                 }
             }
         }
-        if (hOldCursor)
-            SetCursor(hOldCursor);
     }
     catch (...) {
-        if (hOldCursor)
-            SetCursor(hOldCursor);
         return;
     }
 }
 
 void
 AboutMe() {
-    HCURSOR hOldCursor = 0;
     try {
         bool bRc = false;
         DocHandler dh;
@@ -2313,10 +2309,6 @@ AboutMe() {
 
         if (SandBoxedState == NdacClientConfig::SandboxedState::UNKNOWN) {
             return;
-        }
-        
-        if (hWaitCursor) {
-            hOldCursor = SetCursor(hWaitCursor);
         }
 
         if (GetUserEnv(bEnv) &&
@@ -2357,23 +2349,12 @@ AboutMe() {
                         }
                     bUPN.EOLN();
                     bUPN.NullTerminate();
-                    if (hOldCursor) {
-                        SetCursor(hOldCursor);
-                    }
                     MessageBoxA(NULL, (char*)bUPN, "About Me", MB_OK);
                 }//here
             }
         }
-        else {
-            if (hOldCursor) {
-                SetCursor(hOldCursor);
-            }
-        }
     }
     catch (...) {
-        if (hOldCursor) {
-            SetCursor(hOldCursor);
-        }
         return;
     }
 
@@ -2382,6 +2363,7 @@ AboutMe() {
 
 void*
 EncryptProc(void* args) {
+    UpProgress();
     try {
         struct _stat sbuf;
         bool bRc = false;
@@ -2466,15 +2448,13 @@ EncryptProc(void* args) {
 
         SendMessage(ProgressBarWidget.GetHWnd(), PBM_SETPOS, 0, 0);
 
-        {
-            OperationInProgress = false;
-        }
+        DownProgress();
 
         ShowLocalFiles();
     }
     catch (...) {
         SendMessage(ProgressBarWidget.GetHWnd(), PBM_SETPOS, 0, 0);
-        OperationInProgress = false;
+        DownProgress();
         return 0;
     }
 
@@ -2483,6 +2463,7 @@ EncryptProc(void* args) {
 
 void*
 DecryptProc(void* args) {
+    UpProgress();
     try {
         WCHAR wcBuf[MAX_LINE];
         struct _stat sbuf;
@@ -2562,15 +2543,13 @@ DecryptProc(void* args) {
 
         SendMessage(ProgressBarWidget.GetHWnd(), PBM_SETPOS, 0, 0);
 
-        {
-            OperationInProgress = false;
-        }
+        DownProgress();
 
         ShowLocalFiles();
     }
     catch (...) {
         SendMessage(ProgressBarWidget.GetHWnd(), PBM_SETPOS, 0, 0);
-        OperationInProgress = false;
+        DownProgress();
         return 0;
     }
 
@@ -2579,6 +2558,7 @@ DecryptProc(void* args) {
 
 void*
 VerifyProc(void* args) {
+    UpProgress();
     try {
         WCHAR wcBuf[MAX_LINE];
         struct _stat sbuf;
@@ -2638,21 +2618,20 @@ VerifyProc(void* args) {
 
         SendMessage(ProgressBarWidget.GetHWnd(), PBM_SETPOS, 0, 0);
 
-        {
-            OperationInProgress = false;
-        }
+        DownProgress();
 
         return 0;
     }
     catch (...) {
         SendMessage(ProgressBarWidget.GetHWnd(), PBM_SETPOS, 0, 0);
-        OperationInProgress = false;
+        DownProgress();
         return 0;
     }
 }
 
 void*
 UploadProc(void* args) {
+    UpProgress();
     try {
         struct _stat sbuf;
         TLSClientContext client;
@@ -2692,7 +2671,7 @@ UploadProc(void* args) {
         }
         SendMessage(ProgressBarWidget.GetHWnd(), PBM_SETPOS, 0, 0);
 
-        OperationInProgress = false;
+        DownProgress();
 
         {
             WCHAR wcBuf[MAX_LINE];
@@ -2711,7 +2690,7 @@ UploadProc(void* args) {
     }
     catch (...) {
         SendMessage(ProgressBarWidget.GetHWnd(), PBM_SETPOS, 0, 0);
-        OperationInProgress = false;
+        DownProgress();
         return 0;
     }
 }
@@ -2729,6 +2708,7 @@ MonitorRemoteVerifyProc() {
 
 void*
 RemoteVerifyProc() {
+    UpProgress();
     try {
         WCHAR wcBuf[MAX_LINE];
         Responses response = RSP_NULL;
@@ -2760,21 +2740,20 @@ RemoteVerifyProc() {
             SetRemoteStatus((WCHAR*)wcBuf, true);
         }
 
-        {
-            OperationInProgress = false;
-        }
+        DownProgress();
 
         return 0;
     }
     catch (...) {
         SendMessage(ProgressBarWidget.GetHWnd(), PBM_SETPOS, 0, 0);
-        OperationInProgress = false;
+        DownProgress();
         return 0;
     }
 }
 
 void*
 PublishProc() {
+    UpProgress();
     try {
         WCHAR wcBuf[MAX_LINE];
         Responses response = RSP_NULL;
@@ -2802,9 +2781,7 @@ PublishProc() {
             SetRemoteStatus((WCHAR*)wcBuf, true);
         }
 
-        {
-            OperationInProgress = false;
-        }
+        DownProgress();
 
         GetRemoteFileNames();
 
@@ -2812,13 +2789,14 @@ PublishProc() {
     }
     catch (...) {
         SendMessage(ProgressBarWidget.GetHWnd(), PBM_SETPOS, 0, 0);
-        OperationInProgress = false;
+        DownProgress();
         return 0;
     }
 }
 
 void*
 DeclassifyProc() {
+    UpProgress();
     try {
         WCHAR wcBuf[MAX_LINE];
         Responses response = RSP_NULL;
@@ -2846,9 +2824,7 @@ DeclassifyProc() {
             SetRemoteStatus((WCHAR*)wcBuf, true);
         }
 
-        {
-            OperationInProgress = false;
-        }
+        DownProgress();
 
         GetRemoteFileNames();
 
@@ -2856,13 +2832,14 @@ DeclassifyProc() {
     }
     catch (...) {
         SendMessage(ProgressBarWidget.GetHWnd(), PBM_SETPOS, 0, 0);
-        OperationInProgress = false;
+        DownProgress();
         return 0;
     }
 }
 
 void*
 DownloadProc(void* args) {
+    UpProgress();
     try {
         bool bRequest = false;
         WCHAR wcBuf[MAX_LINE];
@@ -2942,15 +2919,13 @@ DownloadProc(void* args) {
             SetRemoteStatus((WCHAR*)wcBuf, true);
         }
 
-        {
-            OperationInProgress = false;
-        }
+        DownProgress();
 
         return 0;
     }
     catch (...) {
         SendMessage(ProgressBarWidget.GetHWnd(), PBM_SETPOS, 0, 0);
-        OperationInProgress = false;
+        DownProgress();
         return 0;
     }
 }
@@ -3016,7 +2991,6 @@ PEMcsr_to_DERcsr(
 
 int ShowLocalFiles()
 {
-    HCURSOR hOldCursor = 0;
     try {
         HTREEITEM Parent = 0;
         TVITEM tvitem;
@@ -3053,8 +3027,6 @@ int ShowLocalFiles()
             Parent = TreeView_GetParent(LocalTreeWidget.GetHWnd(), Parent);
         }
         SelectedLocalFolder = wcName;
-        if (hWaitCursor)
-            hOldCursor = SetCursor(hWaitCursor);
 
         wcName.NullTerminate_w();
         if (GetDirectoryContents((WCHAR*)wcName, files) > 0) {
@@ -3086,12 +3058,8 @@ int ShowLocalFiles()
                 idx++;
             }
         }
-        if (hOldCursor)
-            SetCursor(hOldCursor);
     }
     catch (...) {
-        if (hOldCursor)
-            SetCursor(hOldCursor);
         return 0;
     }
 
@@ -3475,14 +3443,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         case IDC_CONNECT_AUTH_HOST:
             try {
                 if (!OperationInProgress) {
-                    OperationInProgress = true;
+                    UpProgress();
                     Connect();//BuildTestTree();
-                    OperationInProgress = false;
+                    DownProgress();
                 }
                 break;
             }
             catch (...) {
-                OperationInProgress = false;
+                DownProgress();
                 break;
             }
         case IDC_CREATE_CSR:
@@ -3524,7 +3492,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         case IDC_ADD_CERT_TO_CARD:
             try {
                 bool bAdd = false;
-                HCURSOR hOldCursor = 0;
                 Buffer bCert;
                 Buffer bUPN;
                 DWORD len = 0;
@@ -3577,49 +3544,41 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         case ID_UPLOAD_FILE:
             try {
                 if (!OperationInProgress) {
-                    OperationInProgress = true;
                     threadPool::queueThread((void*)UploadProc, 0);
                 }
                 break;
             }
             catch (...) {
-                OperationInProgress = false;
                 break;
             }
         case ID_ENCRYPT_FILE:
             try {
                 if (!OperationInProgress) {
-                    OperationInProgress = true;
                     threadPool::queueThread((void*)EncryptProc, 0);
                 }
                 break;
             }
             catch (...) {
-                OperationInProgress = false;
                 break;
             }
         case ID_DECRYPT_FILE:
             try {
                 if (!OperationInProgress) {
-                    OperationInProgress = true;
                     threadPool::queueThread((void*)DecryptProc, 0);
                 }
                 break;
             }
             catch (...) {
-                OperationInProgress = false;
                 break;
             }
         case ID_VERIFY_FILE:
             try {
                 if (!OperationInProgress) {
-                    OperationInProgress = true;
                     threadPool::queueThread((void*)VerifyProc, 0);
                 }
                 break;
             }
             catch (...) {
-                OperationInProgress = false;
                 break;
             }
         case ID_OPEN_FILE:
@@ -3628,56 +3587,47 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 break;
             }
             catch (...) {
-                OperationInProgress = false;
                 break;
             }
         case ID_DOWNLOAD_FILE:
             try {
                 if (!OperationInProgress) {
-                    OperationInProgress = true;
                     threadPool::queueThread((void*)DownloadProc, 0);
                 }
                 break;
             }
             catch (...) {
-                OperationInProgress = false;
                 break;
             }
         case ID_PUBLISH_FILE:
             try {
                 if (!OperationInProgress) {
-                    OperationInProgress = true;
                     threadPool::queueThread((void*)PublishProc, 0);
                 }
                 break;
             }
             catch (...) {
-                OperationInProgress = false;
                 break;
             }
         case IDC_DECLASSIFY_FILE:
             try {
                 if (!OperationInProgress) {
-                    OperationInProgress = true;
                     threadPool::queueThread((void*)DeclassifyProc, 0);
                 }
                 break;
             }
             catch (...) {
-                OperationInProgress = false;
                 break;
             }
         case ID_REMOTE_VERIFY_FILE:
             try {
                 if (!OperationInProgress) {
-                    OperationInProgress = true;
                     threadPool::queueThread((void*)RemoteVerifyProc, 0);
                     threadPool::queueThread((void*)MonitorRemoteVerifyProc, 0);
                 }
                 break;
             }
             catch (...) {
-                OperationInProgress = false;
                 break;
             }
         default:
@@ -3709,7 +3659,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 break;
             }
             catch (...) {
-                OperationInProgress = false;
                 break;
             }
         case IDC_REMOTE_FILES_LIST:
@@ -3766,7 +3715,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 break;
             }
             catch (...) {
-                OperationInProgress = false;
                 break;
             }
         case IDC_LOCAL_FILES_LIST:
@@ -3808,7 +3756,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 break;
             }
             catch (...) {
-                OperationInProgress = false;
                 break;
             }
         case IDC_LV_MLS:
@@ -3826,7 +3773,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 break;
             }
             catch (...) {
-                OperationInProgress = false;
                 break;
             }
         case IDC_LV_LOCAL_MLS:
@@ -3844,7 +3790,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 break;
             }
             catch (...) {
-                OperationInProgress = false;
+                DownProgress();
                 break;
             }
         default:

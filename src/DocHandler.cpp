@@ -483,7 +483,7 @@ DocHandler::ProtectFile(
 					m_EncryptedSz += bEnc.Size();
 
 					if (notifier && notifier->function && notifier->hWnd) {
-						float pcent = (float)m_EncryptedSz / (float)(sbuf.st_size * 100.0);
+						float pcent = ((float)m_EncryptedSz / (float)sbuf.st_size) * (float)100.0;
 						float diff = pcent - percent;
 						if (diff > 1.0) {
 #ifndef AUTH_SERVICE
@@ -576,7 +576,7 @@ DocHandler::DecryptVerify(FILE* fOut, std::shared_ptr<NotifyView> notifier)
 				}
 				
 				if (notifier && notifier->function && notifier->hWnd) {
-					float pcent = (float)total / (float)(m_FileSz * 100.0);
+					float pcent = ((float)total / (float)m_EncryptedSz) * (float)100.0;
 					float diff = pcent - percent;
 					if (diff > 1.0) {
 #ifndef AUTH_SERVICE
