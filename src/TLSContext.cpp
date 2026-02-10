@@ -214,7 +214,7 @@ int TLSContext::DoNonBlockingReadEx(Buffer &b, int timeout)
     }
 
     SetToNotBlock(m_sock);
-    if (1 != Select(m_sock, timeout, 0, true)) {
+    if (0 > Select(m_sock, timeout, 0, true)) {
         return -1;
     }
 
@@ -225,12 +225,12 @@ int TLSContext::DoNonBlockingReadEx(Buffer &b, int timeout)
         case SSL_ERROR_NONE:
             return b.Size();
         case SSL_ERROR_WANT_READ:
-            if (1 != Select(m_sock, 1, 0, true)) {
+            if (0 > Select(m_sock, 1, 0, true)) {
                 return -1;
             }
             break;
         case SSL_ERROR_WANT_WRITE:
-            if (1 != Select(m_sock, 1, 0, false)) {
+            if (0 > Select(m_sock, 1, 0, false)) {
                 return -1;
             }
             break;
@@ -269,7 +269,7 @@ int TLSContext::DoNonBlockingWriteEx(char* pcData, int szData, int timeout)
     }
 
     SetToNotBlock(m_sock);
-    if (1 != Select(m_sock, timeout, 0, false)) {
+    if (0 > Select(m_sock, timeout, 0, false)) {
         return -1;
     }
 
@@ -285,12 +285,12 @@ int TLSContext::DoNonBlockingWriteEx(char* pcData, int szData, int timeout)
             }
             break;
         case SSL_ERROR_WANT_READ:
-            if (1 != Select(m_sock, 1, 0, true)) {
+            if (0 > Select(m_sock, 1, 0, true)) {
                 return -1;
             }
             break;
         case SSL_ERROR_WANT_WRITE:
-            if (1 != Select(m_sock, 1, 0, false)) {
+            if (0 > Select(m_sock, 1, 0, false)) {
                 return -1;
             }
             break;
