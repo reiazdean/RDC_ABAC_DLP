@@ -92,6 +92,16 @@ std::atomic<SOCKET> SandboxSocket = 0;
 
 #define NUM_TOOLBAR_BUTTONS     6
 
+#define NUM_PLACEMENTS 16
+#define BUTTON_HEIGHT 90
+#define BUTTON_WIDTH 5
+
+typedef struct {
+    Widget* widget;
+    int widthPercent;
+    int heightPercent;
+} WidgetPlacements;
+
 // Forward declarations of functions included in this code module:
 ATOM				MyRegisterClass(HINSTANCE hInstance);
 BOOL				InitInstance(HINSTANCE, int);
@@ -166,6 +176,7 @@ std::atomic<bool> OperationInProgress = false;
 Widget MainWinWidget;
 Widget ToolBarWidget;
 Widget ProgressBarWidget;
+Widget ProgressTextWidget;
 Widget ButtonWidget[NUM_TOOLBAR_BUTTONS];
 Widget AppsViewWidget;
 Widget RemoteDirTitleWidget;
@@ -179,6 +190,7 @@ Widget LocalFilesWidget;
 Widget RemoteStatusWidget;
 Widget LocalStatusWidget;
 Widget UserPrincipalWidget;
+WidgetPlacements* pWidgetPlacements = nullptr;
 
 int hwndIconIndices[NUM_TOOLBAR_BUTTONS] = {
     238,
@@ -279,12 +291,26 @@ L"RSP_NULL"
 
 WCHAR  WC_STATUS[] = L"Status Output";
 
-void UpProgress()
-{
-    if (hWaitCursor) {
-        hOldCursor = SetCursor(hWaitCursor);
+WidgetPlacements* GetPlacementFor(Widget* pWidget) {
+    for (int i = 0; i < NUM_PLACEMENTS; i++) {
+        if (pWidgetPlacements[i].widget == pWidget) {
+            return &pWidgetPlacements[i];
+        }
     }
-    OperationInProgress = true;
+
+    return nullptr;
+}
+
+bool UpProgress()
+{
+    if (!OperationInProgress) {
+        if (hWaitCursor) {
+            hOldCursor = SetCursor(hWaitCursor);
+        }
+        OperationInProgress = true;
+        return true;
+    }
+    return false;
 }
 
 void DownProgress()
@@ -351,7 +377,7 @@ void SetStatus(HWND hWnd, WCHAR* pwcText, bool bAppend)
         bMsg.Append((void*)cTime, wcslen(cTime) * sizeof(WCHAR));
         bMsg.Append((void*)L"\r\n", sizeof(WCHAR) * 2);
 
-        //std::unique_lock<std::mutex> mlock(MyMutex);
+       // std::unique_lock<std::mutex> mlock(MyMutex);
         if (bAppend) {
             int sz = GetWindowTextLength(hWnd);
             if (sz) {
@@ -378,14 +404,14 @@ void SetStatus(HWND hWnd, WCHAR* pwcText, bool bAppend)
 
 void SetLocalStatus(WCHAR* pwcText, bool bAppend)
 {
-    if (UIready) {
+    if (UIready && pwcText) {
         SetStatus(LocalStatusWidget.GetHWnd(), pwcText, bAppend);
     }
 }
 
 void SetRemoteStatus(WCHAR* pwcText, bool bAppend)
 {
-    if (UIready) {
+    if (UIready && pwcText) {
         SetStatus(LocalStatusWidget.GetHWnd(), pwcText, bAppend);
     }
 }
@@ -1302,6 +1328,25 @@ int WINAPI wWinMain(
         _In_      PWSTR     pCmdLine,
         _In_      int       nCmdShow)
 {
+    WidgetPlacements placements[NUM_PLACEMENTS] = {
+        {&MainWinWidget, 100, 100},
+        {&ToolBarWidget, 100, 5},
+        {&UserPrincipalWidget, 25, 50},
+        {&ProgressBarWidget, 20, 50},
+        {&ProgressTextWidget, 20, 50},
+        {&AppsViewWidget, 100, 2},
+        {&RemoteDirTitleWidget, 20, 2},
+        {&RemoteFilesTitleWidget, 30, 2},
+        {&LocalDirTitleWidget, 20, 2},
+        {&LocalFilesTitleWidget, 30, 2},
+        {&RemoteTreeWidget, 20, 60},
+        {&RemoteFilesWidget, 30, 60},
+        {&LocalTreeWidget, 20, 60},
+        {&LocalFilesWidget, 30, 60},
+        {&RemoteStatusWidget, 50, 28},
+        {&LocalStatusWidget, 49, 28}
+    };
+
     HMODULE hLib = LoadLibrary(TEXT("Msftedit.dll"));
 #ifdef _DEBUG
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
@@ -1329,6 +1374,8 @@ int WINAPI wWinMain(
     HACCEL hAccelTable;
     HKL hCurHKL = NULL;
     HKL hOldHKL = NULL;
+
+    pWidgetPlacements = &placements[0];
 
     if (CommandLine && (wcslen(CommandLine) > 0)) {
         try {
@@ -2128,6 +2175,13 @@ UpdateProgress(HWND hWnd) {
     return 0;
 }
 
+void
+UpdateProgressText(WCHAR* pwcText) {
+    if (pwcText) {
+        SetWindowText(ProgressTextWidget.GetHWnd(), pwcText);
+    }
+}
+
 bool
 IsLocallySelectedBusy(
     Buffer& bSelected
@@ -2298,72 +2352,8 @@ GetRemoteFileNames() {
     }
 }
 
-void
-AboutMe() {
-    try {
-        bool bRc = false;
-        DocHandler dh;
-        TLSClientContext client;
-        Buffer bEnv;
-        Buffer resp;
-
-        if (SandBoxedState == NdacClientConfig::SandboxedState::UNKNOWN) {
-            return;
-        }
-
-        if (GetUserEnv(bEnv) &&
-            RequestAuthorization(client, nullptr, CMD_GET_MLS_MCS_AES_ENC_KEY, resp, true)) {
-            if (resp.Size() > sizeof(ResponseHeader)) {
-                ResponseHeader* prh = (ResponseHeader*)resp;
-                if (resp.Size() == (prh->szData + sizeof(ResponseHeader))) {
-                    char* pChar = (char*)resp + sizeof(ResponseHeader);
-                    AuthorizationResponse* pAR = (AuthorizationResponse*)pChar;
-                    Buffer bUPN;
-
-                    if (SandBoxedState == NdacClientConfig::SandboxedState::INSIDE) {
-                        CommandHeader ch;
-                        Buffer bResponse;
-                        Buffer bCmd;
-                        ch.command = Commands::CMD_OOB_GET_SC_CERT;
-                        ch.szData = 0;
-                        bCmd.Append((void*)&ch, sizeof(ch));
-                        if (MyLocalClient->SendToProxy(bCmd, bResponse) == RSP_SUCCESS) {
-                            Certificate cert(bResponse);
-                            cert.GetUPNSubjectAltName(bUPN);
-                        }
-                    }
-                    else {
-                        client.GetUPNSubjectAltName(bUPN);
-                    }
-                    bUPN.Prepend((void*)"UPN = ", 6);
-                    bUPN.EOLN();
-                    bUPN.Append((void*)"MLS = ", 6);
-                    bUPN.Append((void*)pAR->docMAC.mls_desc, strlen(pAR->docMAC.mls_desc));
-                    bUPN.EOLN();
-                    bUPN.Append((void*)"MCS = ", 6);
-                    for (int i = 0; i < MAX_MCS_LEVEL; i++)
-                        if (strlen(pAR->docMAC.mcs_desc[i]) > 0) {
-                            bUPN.Append((void*)pAR->docMAC.mcs_desc[i], strlen(pAR->docMAC.mcs_desc[i]));
-                            bUPN.EOLN();
-                            bUPN.Append((void*)"            ", 12);
-                        }
-                    bUPN.EOLN();
-                    bUPN.NullTerminate();
-                    MessageBoxA(NULL, (char*)bUPN, "About Me", MB_OK);
-                }//here
-            }
-        }
-    }
-    catch (...) {
-        return;
-    }
-
-    return;
-}
-
 void*
 EncryptProc(void* args) {
-    UpProgress();
     try {
         struct _stat sbuf;
         bool bRc = false;
@@ -2447,14 +2437,11 @@ EncryptProc(void* args) {
         }
 
         SendMessage(ProgressBarWidget.GetHWnd(), PBM_SETPOS, 0, 0);
-
-        DownProgress();
-
+        
         ShowLocalFiles();
     }
     catch (...) {
         SendMessage(ProgressBarWidget.GetHWnd(), PBM_SETPOS, 0, 0);
-        DownProgress();
         return 0;
     }
 
@@ -2463,7 +2450,6 @@ EncryptProc(void* args) {
 
 void*
 DecryptProc(void* args) {
-    UpProgress();
     try {
         WCHAR wcBuf[MAX_LINE];
         struct _stat sbuf;
@@ -2542,14 +2528,11 @@ DecryptProc(void* args) {
         }
 
         SendMessage(ProgressBarWidget.GetHWnd(), PBM_SETPOS, 0, 0);
-
-        DownProgress();
-
+        
         ShowLocalFiles();
     }
     catch (...) {
         SendMessage(ProgressBarWidget.GetHWnd(), PBM_SETPOS, 0, 0);
-        DownProgress();
         return 0;
     }
 
@@ -2558,7 +2541,6 @@ DecryptProc(void* args) {
 
 void*
 VerifyProc(void* args) {
-    UpProgress();
     try {
         WCHAR wcBuf[MAX_LINE];
         struct _stat sbuf;
@@ -2617,21 +2599,17 @@ VerifyProc(void* args) {
         }
 
         SendMessage(ProgressBarWidget.GetHWnd(), PBM_SETPOS, 0, 0);
-
-        DownProgress();
-
+        
         return 0;
     }
     catch (...) {
         SendMessage(ProgressBarWidget.GetHWnd(), PBM_SETPOS, 0, 0);
-        DownProgress();
         return 0;
     }
 }
 
 void*
 UploadProc(void* args) {
-    UpProgress();
     try {
         struct _stat sbuf;
         TLSClientContext client;
@@ -2670,9 +2648,7 @@ UploadProc(void* args) {
             }
         }
         SendMessage(ProgressBarWidget.GetHWnd(), PBM_SETPOS, 0, 0);
-
-        DownProgress();
-
+        
         {
             WCHAR wcBuf[MAX_LINE];
             memset((void*)wcBuf, 0, MAX_LINE * sizeof(WCHAR));
@@ -2690,25 +2666,85 @@ UploadProc(void* args) {
     }
     catch (...) {
         SendMessage(ProgressBarWidget.GetHWnd(), PBM_SETPOS, 0, 0);
-        DownProgress();
         return 0;
     }
 }
 
 void*
-MonitorRemoteVerifyProc() {
+MonitorRemoteVerifyProc(void* args) {
     while (OperationInProgress) {
-        Sleep(50);
+        Sleep(500);
         SendMessage(ProgressBarWidget.GetHWnd(), PBM_STEPIT, 0, 0);
-        std::this_thread::yield();
     }
     SendMessage(ProgressBarWidget.GetHWnd(), PBM_SETPOS, 0, 0);
     return 0;
 }
 
 void*
-RemoteVerifyProc() {
-    UpProgress();
+AboutMe(void* args) {
+    try {
+        bool bRc = false;
+        DocHandler dh;
+        TLSClientContext client;
+        Buffer bEnv;
+        Buffer resp;
+
+        if (SandBoxedState == NdacClientConfig::SandboxedState::UNKNOWN) {
+            return 0;
+        }
+
+        if (GetUserEnv(bEnv) &&
+            RequestAuthorization(client, nullptr, CMD_GET_MLS_MCS_AES_ENC_KEY, resp, true)) {
+            if (resp.Size() > sizeof(ResponseHeader)) {
+                ResponseHeader* prh = (ResponseHeader*)resp;
+                if (resp.Size() == (prh->szData + sizeof(ResponseHeader))) {
+                    char* pChar = (char*)resp + sizeof(ResponseHeader);
+                    AuthorizationResponse* pAR = (AuthorizationResponse*)pChar;
+                    Buffer bUPN;
+
+                    if (SandBoxedState == NdacClientConfig::SandboxedState::INSIDE) {
+                        CommandHeader ch;
+                        Buffer bResponse;
+                        Buffer bCmd;
+                        ch.command = Commands::CMD_OOB_GET_SC_CERT;
+                        ch.szData = 0;
+                        bCmd.Append((void*)&ch, sizeof(ch));
+                        if (MyLocalClient->SendToProxy(bCmd, bResponse) == RSP_SUCCESS) {
+                            Certificate cert(bResponse);
+                            cert.GetUPNSubjectAltName(bUPN);
+                        }
+                    }
+                    else {
+                        client.GetUPNSubjectAltName(bUPN);
+                    }
+                    bUPN.Prepend((void*)"UPN = ", 6);
+                    bUPN.EOLN();
+                    bUPN.Append((void*)"MLS = ", 6);
+                    bUPN.Append((void*)pAR->docMAC.mls_desc, strlen(pAR->docMAC.mls_desc));
+                    bUPN.EOLN();
+                    bUPN.Append((void*)"MCS = ", 6);
+                    for (int i = 0; i < MAX_MCS_LEVEL; i++)
+                        if (strlen(pAR->docMAC.mcs_desc[i]) > 0) {
+                            bUPN.Append((void*)pAR->docMAC.mcs_desc[i], strlen(pAR->docMAC.mcs_desc[i]));
+                            bUPN.EOLN();
+                            bUPN.Append((void*)"            ", 12);
+                        }
+                    bUPN.EOLN();
+                    bUPN.NullTerminate();
+                    MessageBoxA(NULL, (char*)bUPN, "About Me", MB_OK);
+                }//here
+            }
+        }
+    }
+    catch (...) {
+        return 0;
+    }
+
+    return 0;
+}
+
+void*
+RemoteVerifyProc(void* args) {
     try {
         WCHAR wcBuf[MAX_LINE];
         Responses response = RSP_NULL;
@@ -2721,11 +2757,6 @@ RemoteVerifyProc() {
         bSelected.NullTerminate_w();
         memset(&ar, 0, sizeof(ar));
         memcpy((void*)ar.docMAC.mls_doc_name, (wchar_t*)bSelected, bSelected.Size());
-
-        {
-            SendMessage(ProgressBarWidget.GetHWnd(), PBM_SETRANGE, 0, MAKELPARAM(0, 100));
-            SendMessage(ProgressBarWidget.GetHWnd(), PBM_SETSTEP, (WPARAM)2, 0);
-        }
 
         RequestAuthorization(client, &ar, CMD_VERIFY_DOCUMENT, resp, true);
 
@@ -2740,20 +2771,15 @@ RemoteVerifyProc() {
             SetRemoteStatus((WCHAR*)wcBuf, true);
         }
 
-        DownProgress();
-
         return 0;
     }
     catch (...) {
-        SendMessage(ProgressBarWidget.GetHWnd(), PBM_SETPOS, 0, 0);
-        DownProgress();
         return 0;
     }
 }
 
 void*
-PublishProc() {
-    UpProgress();
+PublishProc(void* args) {
     try {
         WCHAR wcBuf[MAX_LINE];
         Responses response = RSP_NULL;
@@ -2780,23 +2806,18 @@ PublishProc() {
             }
             SetRemoteStatus((WCHAR*)wcBuf, true);
         }
-
-        DownProgress();
-
+        
         GetRemoteFileNames();
 
         return 0;
     }
     catch (...) {
-        SendMessage(ProgressBarWidget.GetHWnd(), PBM_SETPOS, 0, 0);
-        DownProgress();
         return 0;
     }
 }
 
 void*
-DeclassifyProc() {
-    UpProgress();
+DeclassifyProc(void* args) {
     try {
         WCHAR wcBuf[MAX_LINE];
         Responses response = RSP_NULL;
@@ -2824,22 +2845,17 @@ DeclassifyProc() {
             SetRemoteStatus((WCHAR*)wcBuf, true);
         }
 
-        DownProgress();
-
         GetRemoteFileNames();
 
         return 0;
     }
     catch (...) {
-        SendMessage(ProgressBarWidget.GetHWnd(), PBM_SETPOS, 0, 0);
-        DownProgress();
         return 0;
     }
 }
 
 void*
 DownloadProc(void* args) {
-    UpProgress();
     try {
         bool bRequest = false;
         WCHAR wcBuf[MAX_LINE];
@@ -2918,14 +2934,11 @@ DownloadProc(void* args) {
                 (wchar_t*)bSelected, wcErrorStrings[prh->response], prh->response);
             SetRemoteStatus((WCHAR*)wcBuf, true);
         }
-
-        DownProgress();
-
+        
         return 0;
     }
     catch (...) {
         SendMessage(ProgressBarWidget.GetHWnd(), PBM_SETPOS, 0, 0);
-        DownProgress();
         return 0;
     }
 }
@@ -3296,19 +3309,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             DEFAULT_PITCH | FF_DONTCARE, TEXT("Arial"));
 
         MainWinWidget.SetAsRoot(hAppWnd);
-        MainWinWidget.AddLeftTopAnchorWidget(100, 5, ToolBarWidget);
+        MainWinWidget.AddLeftTopAnchorWidget(GetPlacementFor(&ToolBarWidget)->widthPercent,
+                                             GetPlacementFor(&ToolBarWidget)->heightPercent, ToolBarWidget);
         ToolBarWidget.CreateView(0, (TCHAR*)L"STATIC", (TCHAR*)L"", WS_CHILD | WS_VISIBLE, NULL, NULL, hAppFont, NULL, NULL, hwndTT);
 
-        ToolBarWidget.AddRightTopAnchorWidget(25, 50, UserPrincipalWidget);
+        ToolBarWidget.AddRightTopAnchorWidget(GetPlacementFor(&UserPrincipalWidget)->widthPercent,
+                                              GetPlacementFor(&UserPrincipalWidget)->heightPercent, UserPrincipalWidget);
         UserPrincipalWidget.CreateView(0, (TCHAR*)L"STATIC", (TCHAR*)L" Authenticated as:",
             WS_CHILD | WS_VISIBLE, NULL, NULL, hAppFont, NULL, NULL, hwndTT);
         SetWindowPos(UserPrincipalWidget.GetHWnd(), ToolBarWidget.GetHWnd(), 0, 0, 0, 0, SWP_SHOWWINDOW);
 
         //start tooltip buttons
-        ToolBarWidget.AddLeftTopAnchorWidget(5, 90, ButtonWidget[0]);
+        ToolBarWidget.AddLeftTopAnchorWidget(BUTTON_WIDTH, BUTTON_HEIGHT, ButtonWidget[0]);
         for (i = 1; i < NUM_TOOLBAR_BUTTONS; i++)
         {
-            ButtonWidget[i - 1].AddSiblingWidgetToRight(5, 90, ButtonWidget[i]);
+            ButtonWidget[i - 1].AddSiblingWidgetToRight(BUTTON_WIDTH, BUTTON_HEIGHT, ButtonWidget[i]);
         }
 
         for (i = 0; i < NUM_TOOLBAR_BUTTONS; i++)
@@ -3324,18 +3339,32 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             SetWindowPos(ButtonWidget[i].GetHWnd(), ToolBarWidget.GetHWnd(), 0, 0, 0, 0, SWP_SHOWWINDOW);
         }
 
-        UserPrincipalWidget.AddSiblingWidgetToLeft(20, 50, ProgressBarWidget);
+        UserPrincipalWidget.AddSiblingWidgetToLeft(GetPlacementFor(&ProgressBarWidget)->widthPercent,
+                                                   GetPlacementFor(&ProgressBarWidget)->heightPercent, ProgressBarWidget);
         ProgressBarWidget.CreateView(0, (TCHAR*)PROGRESS_CLASS, NULL,
             WS_CHILD | WS_VISIBLE, NULL, NULL, hAppFont, (WCHAR*)L"Operation progress", NULL, hwndTT);
         SetWindowPos(ProgressBarWidget.GetHWnd(), ToolBarWidget.GetHWnd(), 0, 0, 0, 0, SWP_SHOWWINDOW);
 
+        ProgressBarWidget.AddSiblingWidgetToLeft(GetPlacementFor(&ProgressTextWidget)->widthPercent,
+            GetPlacementFor(&ProgressTextWidget)->heightPercent, ProgressTextWidget);
+        ProgressTextWidget.CreateView(0, (TCHAR*)L"STATIC", NULL, WS_CHILD | WS_VISIBLE, NULL, NULL, hAppFont, NULL, NULL, hwndTT);
+
         //**********************
         //end tooltip buttons
-        ToolBarWidget.AddSiblingWidgetBelow(100, 6, AppsViewWidget);
-        AppsViewWidget.AddSiblingWidgetBelow(20, 2, RemoteDirTitleWidget);
-        RemoteDirTitleWidget.AddSiblingWidgetToRight(30, 2, RemoteFilesTitleWidget);
-        RemoteFilesTitleWidget.AddSiblingWidgetToRight(20, 2, LocalDirTitleWidget);
-        LocalDirTitleWidget.AddSiblingWidgetToRight(30, 2, LocalFilesTitleWidget);
+        ToolBarWidget.AddSiblingWidgetBelow(GetPlacementFor(&AppsViewWidget)->widthPercent,
+                                            GetPlacementFor(&AppsViewWidget)->heightPercent, AppsViewWidget);
+
+        AppsViewWidget.AddSiblingWidgetBelow(GetPlacementFor(&RemoteDirTitleWidget)->widthPercent,
+                                             GetPlacementFor(&RemoteDirTitleWidget)->heightPercent, RemoteDirTitleWidget);
+
+        RemoteDirTitleWidget.AddSiblingWidgetToRight(GetPlacementFor(&RemoteFilesTitleWidget)->widthPercent,
+                                                     GetPlacementFor(&RemoteFilesTitleWidget)->heightPercent, RemoteFilesTitleWidget);
+
+        RemoteFilesTitleWidget.AddSiblingWidgetToRight(GetPlacementFor(&LocalDirTitleWidget)->widthPercent,
+                                                       GetPlacementFor(&LocalDirTitleWidget)->heightPercent, LocalDirTitleWidget);
+
+        LocalDirTitleWidget.AddSiblingWidgetToRight(GetPlacementFor(&LocalFilesTitleWidget)->widthPercent,
+                                                    GetPlacementFor(&LocalFilesTitleWidget)->heightPercent, LocalFilesTitleWidget);
 
         AppsViewWidget.CreateView(0, (TCHAR*)WC_LISTVIEW, (TCHAR*)L"List View",
             WS_VISIBLE | WS_CHILD | WS_BORDER | WS_VSCROLL | WS_HSCROLL,
@@ -3357,35 +3386,41 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             WS_CHILD | WS_VISIBLE, NULL, NULL, hAppFont, NULL, NULL, hwndTT);
         SetWindowPos(LocalFilesTitleWidget.GetHWnd(), HWND_TOP, 0, 0, 0, 0, SWP_SHOWWINDOW);
 
-        RemoteDirTitleWidget.AddSiblingWidgetBelow(20, 65, RemoteTreeWidget);
+        RemoteDirTitleWidget.AddSiblingWidgetBelow(GetPlacementFor(&RemoteTreeWidget)->widthPercent,
+                                                   GetPlacementFor(&RemoteTreeWidget)->heightPercent, RemoteTreeWidget);
         RemoteTreeWidget.CreateView(0, (TCHAR*)WC_TREEVIEW, (TCHAR*)L"Tree View",
             WS_VISIBLE | WS_CHILD | WS_BORDER | TVS_HASLINES | WS_VSCROLL | WS_HSCROLL | TVS_HASBUTTONS,
             (HMENU)IDC_LV_MLS, hInst, hAppFont, NULL, hWnd, hwndTT);
         TreeView_SetImageList(RemoteTreeWidget.GetHWnd(), hShellImages, TVSIL_NORMAL);
 
-        RemoteTreeWidget.AddSiblingWidgetToRight(30, 65, RemoteFilesWidget);
+        RemoteTreeWidget.AddSiblingWidgetToRight(GetPlacementFor(&RemoteFilesWidget)->widthPercent,
+                                                 GetPlacementFor(&RemoteFilesWidget)->heightPercent, RemoteFilesWidget);
         RemoteFilesWidget.CreateView(0, (TCHAR*)WC_LISTVIEW, (TCHAR*)L"List View",
             WS_VISIBLE | WS_CHILD | WS_BORDER | WS_VSCROLL | WS_HSCROLL,
             (HMENU)IDC_REMOTE_FILES_LIST, hInst, hAppFont, NULL, hWnd, hwndTT);
         ListView_SetImageList(RemoteFilesWidget.GetHWnd(), hAppImages, LVSIL_NORMAL);
 
-        RemoteFilesWidget.AddSiblingWidgetToRight(20, 65, LocalTreeWidget);
+        RemoteFilesWidget.AddSiblingWidgetToRight(GetPlacementFor(&LocalTreeWidget)->widthPercent,
+                                                  GetPlacementFor(&LocalTreeWidget)->heightPercent, LocalTreeWidget);
         LocalTreeWidget.CreateView(0, (TCHAR*)WC_TREEVIEW, (TCHAR*)L"Tree View",
             WS_VISIBLE | WS_CHILD | WS_BORDER | TVS_HASLINES | WS_VSCROLL | WS_HSCROLL | TVS_HASBUTTONS,
             (HMENU)IDC_LV_LOCAL_MLS, hInst, hAppFont, NULL, hWnd, hwndTT);
         TreeView_SetImageList(LocalTreeWidget.GetHWnd(), hShellImages, TVSIL_NORMAL);
 
-        LocalTreeWidget.AddSiblingWidgetToRight(30, 65, LocalFilesWidget);
+        LocalTreeWidget.AddSiblingWidgetToRight(GetPlacementFor(&LocalFilesWidget)->widthPercent,
+                                                GetPlacementFor(&LocalFilesWidget)->heightPercent, LocalFilesWidget);
         LocalFilesWidget.CreateView(0, (TCHAR*)WC_LISTVIEW, (TCHAR*)L"List View",
             WS_VISIBLE | WS_CHILD | WS_BORDER | WS_VSCROLL | WS_HSCROLL,
             (HMENU)IDC_LOCAL_FILES_LIST, hInst, hAppFont, NULL, hWnd, hwndTT);
 
-        RemoteTreeWidget.AddSiblingWidgetBelow(50, 19, RemoteStatusWidget);
+        RemoteTreeWidget.AddSiblingWidgetBelow(GetPlacementFor(&RemoteStatusWidget)->widthPercent,
+                                               GetPlacementFor(&RemoteStatusWidget)->heightPercent, RemoteStatusWidget);
         RemoteStatusWidget.CreateView(0, (TCHAR*)L"RICHEDIT50W", (TCHAR*)L"Remote status messages",
             WS_CHILD | WS_VISIBLE | ES_MULTILINE | WS_BORDER | ES_READONLY | WS_VSCROLL,
             NULL, hInst, hAppFont, NULL, hWnd, hwndTT);
 
-        LocalTreeWidget.AddSiblingWidgetBelow(49, 19, LocalStatusWidget);
+        LocalTreeWidget.AddSiblingWidgetBelow(GetPlacementFor(&LocalStatusWidget)->widthPercent,
+                                              GetPlacementFor(&LocalStatusWidget)->heightPercent, LocalStatusWidget);
         LocalStatusWidget.CreateView(0, (TCHAR*)L"RICHEDIT50W", (TCHAR*)L"Local status messages",
             WS_CHILD | WS_VISIBLE | ES_MULTILINE | WS_BORDER | ES_READONLY | WS_VSCROLL,
             NULL, hInst, hAppFont, NULL, hWnd, hwndTT);
@@ -3442,8 +3477,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             break;
         case IDC_CONNECT_AUTH_HOST:
             try {
-                if (!OperationInProgress) {
-                    UpProgress();
+                if (UpProgress()) {
                     Connect();//BuildTestTree();
                     DownProgress();
                 }
@@ -3524,11 +3558,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         case IDC_ABOUT_ME:
             try {
                 if (MyChosenKey.Size() > 0) {
-                    AboutMe();
+                    if (UpProgress()) {
+                        AboutMe(0);
+                        DownProgress();
+                    }
                 }
                 break;
             }
             catch (...) {
+                DownProgress();
                 break;
             }
         case IDC_CONFIG:
@@ -3543,42 +3581,50 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
         case ID_UPLOAD_FILE:
             try {
-                if (!OperationInProgress) {
-                    threadPool::queueThread((void*)UploadProc, 0);
+                if (UpProgress()) {
+                    UploadProc(0);
+                    DownProgress();
                 }
                 break;
             }
             catch (...) {
+                DownProgress();
                 break;
             }
         case ID_ENCRYPT_FILE:
             try {
-                if (!OperationInProgress) {
-                    threadPool::queueThread((void*)EncryptProc, 0);
+                if (UpProgress()) {
+                    EncryptProc(0);//threadPool::queueThread((void*)EncryptProc, 0);//
+                    DownProgress();
                 }
                 break;
             }
             catch (...) {
+                DownProgress();
                 break;
             }
         case ID_DECRYPT_FILE:
             try {
-                if (!OperationInProgress) {
-                    threadPool::queueThread((void*)DecryptProc, 0);
+                if (UpProgress()) {
+                    DecryptProc(0);//threadPool::queueThread((void*)DecryptProc, 0);//
+                    DownProgress();
                 }
                 break;
             }
             catch (...) {
+                DownProgress();
                 break;
             }
         case ID_VERIFY_FILE:
             try {
-                if (!OperationInProgress) {
-                    threadPool::queueThread((void*)VerifyProc, 0);
+                if (UpProgress()) {
+                    VerifyProc(0);// threadPool::queueThread((void*)VerifyProc, 0);
+                    DownProgress();
                 }
                 break;
             }
             catch (...) {
+                DownProgress();
                 break;
             }
         case ID_OPEN_FILE:
@@ -3591,43 +3637,50 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
         case ID_DOWNLOAD_FILE:
             try {
-                if (!OperationInProgress) {
-                    threadPool::queueThread((void*)DownloadProc, 0);
+                if (UpProgress()) {
+                    DownloadProc(0);
+                    DownProgress();
                 }
                 break;
             }
             catch (...) {
+                DownProgress();
                 break;
             }
         case ID_PUBLISH_FILE:
             try {
-                if (!OperationInProgress) {
-                    threadPool::queueThread((void*)PublishProc, 0);
+                if (UpProgress()) {
+                    PublishProc(0);
+                    DownProgress();
                 }
                 break;
             }
             catch (...) {
+                DownProgress();
                 break;
             }
         case IDC_DECLASSIFY_FILE:
             try {
-                if (!OperationInProgress) {
-                    threadPool::queueThread((void*)DeclassifyProc, 0);
+                if (UpProgress()) {
+                    DeclassifyProc(0);
+                    DownProgress();
                 }
                 break;
             }
             catch (...) {
+                DownProgress();
                 break;
             }
         case ID_REMOTE_VERIFY_FILE:
             try {
-                if (!OperationInProgress) {
-                    threadPool::queueThread((void*)RemoteVerifyProc, 0);
-                    threadPool::queueThread((void*)MonitorRemoteVerifyProc, 0);
+                if (UpProgress()) {
+                    RemoteVerifyProc(0);
+                    DownProgress();
                 }
                 break;
             }
             catch (...) {
+                DownProgress();
                 break;
             }
         default:
@@ -3659,6 +3712,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 break;
             }
             catch (...) {
+                DownProgress();
                 break;
             }
         case IDC_REMOTE_FILES_LIST:
@@ -3715,6 +3769,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 break;
             }
             catch (...) {
+                DownProgress();
                 break;
             }
         case IDC_LOCAL_FILES_LIST:
@@ -3756,14 +3811,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 break;
             }
             catch (...) {
+                DownProgress();
                 break;
             }
         case IDC_LV_MLS:
             try {
                 if (((LPNMHDR)lParam)->code == NM_DBLCLK)
                 {
-                    if (!OperationInProgress) {
+                    if (UpProgress()) {
                         GetRemoteFileNames();
+                        DownProgress();
                     }
                 }
                 else if (((LPNMHDR)lParam)->code == NM_RCLICK)
@@ -3773,14 +3830,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 break;
             }
             catch (...) {
+                DownProgress();
                 break;
             }
         case IDC_LV_LOCAL_MLS:
             try {
                 if (((LPNMHDR)lParam)->code == NM_DBLCLK)
                 {
-                    if (!OperationInProgress) {
+                    if (UpProgress()) {
                         ShowLocalFiles();
+                        DownProgress();
                     }
                 }
                 else if (((LPNMHDR)lParam)->code == NM_RCLICK)

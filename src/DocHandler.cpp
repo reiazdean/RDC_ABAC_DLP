@@ -21,7 +21,7 @@ http://www.apache.org/licenses/LICENSE-2.0
 using namespace ReiazDean;
 
 #ifndef AUTH_SERVICE
-void SetLocalStatus(WCHAR* pwcText, bool bAppend);
+void UpdateProgressText(WCHAR* pwcText);
 extern int SandBoxedState;
 extern LocalClient* MyLocalClient;
 #endif
@@ -489,7 +489,7 @@ DocHandler::ProtectFile(
 #ifndef AUTH_SERVICE
 							WCHAR msg[64];
 							swprintf_s(msg, 64, L"Percent encrypted: %f\n", pcent);
-							SetLocalStatus(msg, false);
+							UpdateProgressText(msg);
 #endif
 							percent = pcent;
 							notifier->function(notifier->hWnd);
@@ -582,7 +582,7 @@ DocHandler::DecryptVerify(FILE* fOut, std::shared_ptr<NotifyView> notifier)
 #ifndef AUTH_SERVICE
 						WCHAR msg[64];
 						swprintf_s(msg, 64, L"Percent %s: %f\n", (fOut ? L"decrypted" : L"verified"), pcent);
-						SetLocalStatus(msg, false);
+						UpdateProgressText(msg);
 #endif
 						percent = pcent;
 						notifier->function(notifier->hWnd);
@@ -741,7 +741,7 @@ DocHandler::SendDocument(TLSContext& tls, std::shared_ptr<NotifyView> notifier) 
 #ifndef AUTH_SERVICE
 						WCHAR msg[64];
 						swprintf_s(msg, 64, L"Percent uploaded: %f\n", pcent);
-						SetLocalStatus(msg, false);
+						UpdateProgressText(msg);
 #endif
 						percent = pcent;
 						notifier->function(notifier->hWnd);
@@ -820,7 +820,7 @@ DocHandler::ReceiveDocument(
 #ifndef AUTH_SERVICE
 						WCHAR msg[64];
 						swprintf_s(msg, 64, L"Percent downloaded: %f of %d bytes\n", pcent, len);
-						SetLocalStatus(msg, false);
+						UpdateProgressText(msg);
 #endif
 						percent = pcent;
 						notifier->function(notifier->hWnd);
@@ -843,7 +843,7 @@ DocHandler::ReceiveDocument(
 #ifndef AUTH_SERVICE
 	WCHAR msg[64];
 	swprintf_s(msg, 64, L"Total %u of %u downloaded\n", total, len);
-	SetLocalStatus(msg, true);
+	UpdateProgressText(msg);
 #else
 	//printf("Total %d of %d uploaded\n", total, len);
 #endif
@@ -966,7 +966,7 @@ DocHandler::SendDocumentToProxy(SOCKET sbSock, std::shared_ptr<NotifyView> notif
 #ifndef AUTH_SERVICE
 						WCHAR msg[64];
 						swprintf_s(msg, 64, L"Percent uploaded: %f len = %u\n", pcent, m_FileSz);
-						SetLocalStatus(msg, false);
+						UpdateProgressText(msg);
 #endif
 						percent = pcent;
 						notifier->function(notifier->hWnd);
@@ -1028,7 +1028,7 @@ DocHandler::ReceiveDocumentFromProxy(
 #ifndef AUTH_SERVICE
 						WCHAR msg[64];
 						swprintf_s(msg, 64, L"Percent downloaded: %f of %u bytes\n", pcent, len);
-						SetLocalStatus(msg, false);
+						UpdateProgressText(msg);
 #endif
 						percent = pcent;
 						notifier->function(notifier->hWnd);
@@ -1044,7 +1044,7 @@ DocHandler::ReceiveDocumentFromProxy(
 #ifndef AUTH_SERVICE
 		WCHAR msg[64];
 		swprintf_s(msg, 64, L"Total %u of %d downloaded\n", total, len);
-		SetLocalStatus(msg, true);
+		UpdateProgressText(msg);
 #endif
 
 		fclose(fp);
