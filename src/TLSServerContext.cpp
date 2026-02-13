@@ -1472,11 +1472,8 @@ bool TLSServerContext::PublishClassifiedDocument(Mandatory_AC& userMac, Buffer& 
         
         hr = LockFilePath(folder);
         if (hr != INVALID_HANDLE_VALUE) {
-            if (CopyFileW(fname, folder, FALSE)) {
-                wchar_t renamed[MAX_NAME];
-                memset(renamed, 0, sizeof(renamed));
-                swprintf_s(renamed, MAX_NAME - 1, L"%s.published", fname);
-                MoveFileW(fname, renamed);
+            if (MoveFileW(fname, folder)) {
+                respH.response = RSP_SUCCESS;
             }
             else {
                 respH.response = RSP_FILE_MOVE_ERROR;
@@ -1642,6 +1639,7 @@ bool TLSServerContext::DeclassifyClassifiedDocument(Mandatory_AC& userMac, Buffe
 
     if (respH.response == RSP_SUCCESS) {
         memset(folder, 0, sizeof(folder));
+        //folder will now contain the full name of the declassified file, path included
         swprintf_s(folder, MAX_NAME - 1, L"%S\\Declassified\\%S\\%s\\%s",
             (char*)bRoot, userMac.mcs_desc[0], pieces.at(count - 2), pieces.at(count - 1));
 
@@ -1653,8 +1651,8 @@ bool TLSServerContext::DeclassifyClassifiedDocument(Mandatory_AC& userMac, Buffe
                     memset(renamed, 0, sizeof(renamed));
                     swprintf_s(renamed, MAX_NAME - 1, L"%s.declassified", fname);
                     MoveFileW(fname, renamed);
-                    DeleteFileW(folder);
                 }
+                DeleteFileW(folder);
             }
             else {
                 respH.response = RSP_FILE_MOVE_ERROR;
