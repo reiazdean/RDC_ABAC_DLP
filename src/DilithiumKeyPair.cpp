@@ -145,6 +145,10 @@ bool DilithiumKeyPair::Verify(const Buffer& bData, const Buffer bSignature)
     Buffer bTmpSig = bSignature;
 
     try {
+        if (bTmpSig.Size() != (CRYPTO_BYTES + SHA512_DIGEST_LENGTH)) {
+            return false;
+        }
+
         if (0 == crypto_sign_open(m_out, &m_out_len, (uint8_t*)bTmpSig, bTmpSig.Size(), ctx, CTXLEN, (uint8_t*)m_PubKey)) {
             Buffer bHash;
             Buffer bTmp = bData;

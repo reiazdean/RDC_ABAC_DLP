@@ -2434,6 +2434,9 @@ EncryptProc(void* args) {
                 DeleteFileW((wchar_t*)bSelected);
                 BuildLocalClassifiedTree();
             }
+            else {
+                DeleteFileW((wchar_t*)bOut);
+            }
         }
 
         SendMessage(ProgressBarWidget.GetHWnd(), PBM_SETPOS, 0, 0);
