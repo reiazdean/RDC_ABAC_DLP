@@ -3150,6 +3150,42 @@ KSPSign(
     return false;
 }
 
+bool
+VerifyTSsig(
+    Buffer bData,
+    Buffer bTSSig
+)
+{
+#ifdef AUTH_SERVICE
+    NdacServerConfig& conf = NdacServerConfig::GetInstance();
+#else
+    NdacClientConfig& conf = NdacClientConfig::GetInstance();
+#endif
+    try {
+        SequenceReaderX seq;
+        DilithiumKeyPair dpk;
+        Buffer bPKfile = conf.GetValue(DILITHIUM_PUBLIC_FILE);
+        if (dpk.ReadPublic((char*)bPKfile)) {
+            if (seq.Initilaize(bTSSig)) {
+                Buffer bNow;
+                if (seq.getElementAt(0, bNow)) {
+                    Buffer bSig;
+                    if (seq.getValueAt(1, bSig)) {
+                        Buffer bTemp = bData;
+                        bTemp.Append(bNow);
+                        return dpk.Verify(bTemp, bSig);
+                    }
+                }
+            }
+        }
+    }
+    catch (...) {
+        return false;
+    }
+
+    return false;
+}
+
 uint32_t
 KSPwrapClientCertAndSigForDoc(
     WCHAR* pwcKeyName,
@@ -3187,14 +3223,19 @@ KSPwrapClientCertAndSigForDoc(
         }
 
         if (ERROR_SUCCESS == ss) {
-            if (ccm.GetTimeStampSig(bSig, bTSsig)) {
-                bSig.ASN1Wrap(UNIVERSAL_TYPE_OCTETSTR);
-                bCertAndSig.Append(bSig);
-                bCertAndSig.Append(bTSsig);
-                bCertAndSig.ASN1Wrap(CONSTRUCTED_SEQUENCE);
-                return bCertAndSig.Size();
+            if (ccm.GetTimeStampSig(bSig, bTSsig)) {//service signs the client signature plus a timestamp with the Dilithium private key
+                if (VerifyTSsig(bSig, bTSsig)) {
+                    bSig.ASN1Wrap(UNIVERSAL_TYPE_OCTETSTR);
+                    bCertAndSig.Append(bSig);
+                    bCertAndSig.Append(bTSsig);
+                    bCertAndSig.ASN1Wrap(CONSTRUCTED_SEQUENCE);
+                    return bCertAndSig.Size();
+                }
             }
         }
+        //if we got here, things failed
+        bCertAndSig.Clear();
+        return 0;
     }
     catch (...) {
         bCertAndSig.Clear();
