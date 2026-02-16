@@ -901,7 +901,7 @@ DocHandler::ProxyReceiveSendDocument(TLSContext& tls, SOCKET sbSocket, int32_t l
 			}
 		} while (total < len);
 
-		if (NonBlockingWriteEx(sbSocket, (char*)&r, sizeof(int)) == 0) {
+		if (NonBlockingWriteEx(sbSocket, (char*)&r, sizeof(int)) <= 0) {
 			return RSP_SOCKET_IO_ERROR;
 		}
 
@@ -975,7 +975,7 @@ DocHandler::SendDocumentToProxy(SOCKET sbSock, std::shared_ptr<NotifyView> notif
 			}
 		} while (total < m_FileSz);
 
-		if (NonBlockingRead(sbSock, sig) == 0) {
+		if (NonBlockingRead(sbSock, sig) <= 0) {
 			return RSP_SOCKET_IO_ERROR;
 		}
 
@@ -1090,7 +1090,7 @@ DocHandler::ProxyReceiveDocument(
 			uint32_t rr = 0;
 			Buffer b;
 			r = tls.DoNonBlockingReadEx(b);
-			if (r < 0) {
+			if (r <= 0) {
 				return RSP_SOCKET_IO_ERROR;
 			}
 
