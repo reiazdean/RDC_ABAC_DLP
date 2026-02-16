@@ -118,7 +118,7 @@ Responses LocalClient::SendToProxyPrivate(Buffer& bCmd, Buffer& out) {
             return RSP_SOCKET_IO_ERROR;
         }
 
-        if (NonBlockingRead(mUnixSock, bTmp) <= 0) {
+        if (BlockingRead(mUnixSock, bTmp) <= 0) {
             return RSP_MEMORY_ERROR;
         }
 
