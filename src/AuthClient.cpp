@@ -723,11 +723,15 @@ RequestResponse(
         }
         case Commands::CMD_OOB_GET_SC_CERT:
         {
-            KSPGetUserCertificate(ChooseUserKey(), bResp);
+            response = RSP_CERT_INVALID;
+            if (KSPGetUserCertificate(ChooseUserKey(), bResp)) {
+                response = RSP_SUCCESS;
+            }
             break;
         }
         case Commands::CMD_OOB_SC_SIGN_DOC_HASH:
         {
+            response = RSP_SIGNATURE_INVALID;
             SequenceReaderX seq;
             Buffer bTmp((uint8_t*)bCmd + sizeof(CommandHeader), pch->szData);
             if (seq.Initilaize(bTmp)) {
@@ -736,7 +740,9 @@ RequestResponse(
                 if (seq.getValueAt(0, bHash) && seq.getValueAt(1, bDocSz)) {
                     uint32_t encryptedSz;
                     memcpy(&encryptedSz, (void*)bDocSz, sizeof(uint32_t));
-                    KSPwrapClientCertAndSigForDoc(ChooseUserKey(), (uint8_t*)bHash, bHash.Size(), encryptedSz, bResp);
+                    if (KSPwrapClientCertAndSigForDoc(ChooseUserKey(), (uint8_t*)bHash, bHash.Size(), encryptedSz, bResp) > 0) {
+                        response = RSP_SUCCESS;
+                    }
                 }
             }
             break;
@@ -759,6 +765,7 @@ RequestResponse(
         }
         case Commands::CMD_DOWNLOAD_DOCUMENT:
         case Commands::CMD_UPLOAD_DOCUMENT:
+        case Commands::CMD_DOWNLOAD_DECLASSIFIED:
         {
             response = RequestAuthorizationA(client, bCmd, bResp, false);
             break;
@@ -864,6 +871,7 @@ OutOfBoxServer(void* args)
             }
             if (result >= 0) {
                 if (rh.response == RSP_SUCCESS) {
+                    Responses rsp;
                     CommandHeader* pch = nullptr;
                     pch = (CommandHeader*)bCmd;
                     ResponseHeader* prh = nullptr;
@@ -874,25 +882,26 @@ OutOfBoxServer(void* args)
                         Buffer bLocalName;
                         int32_t szDoc = 0;
                         if (IsFileLocal(bCmd, bLocalName, szDoc)) {
-                            DocHandler::ProxySendLocalDocument(data_socket, bLocalName);
+                            rsp = DocHandler::ProxySendLocalDocument(data_socket, bLocalName);
                         }
                         else {
                             int32_t len = prh->szData;
-                            DocHandler::ProxyReceiveDocument(client, data_socket, len, bLocalName);
+                            rsp = DocHandler::ProxyReceiveDocument(client, data_socket, len, bLocalName);
                         }
                         break;
                     }
+                    case Commands::CMD_DOWNLOAD_DECLASSIFIED:
                     case Commands::CMD_DOWNLOAD_DOCUMENT:
                     {
                         int32_t len = prh->szData;
-                        DocHandler::ProxyReceiveDocument(client, data_socket, len, nullptr);
+                        rsp = DocHandler::ProxyReceiveDocument(client, data_socket, len, nullptr);
                         break;
                     }
                     case Commands::CMD_UPLOAD_DOCUMENT:
                     {
                         uint8_t* pChar = (uint8_t*)bCmd + sizeof(CommandHeader);
                         AuthorizationRequest* pAR = (AuthorizationRequest*)pChar;
-                        DocHandler::ProxyReceiveSendDocument(client, data_socket, pAR->docMAC.mls_doc_size);
+                        rsp = DocHandler::ProxyReceiveSendDocument(client, data_socket, pAR->docMAC.mls_doc_size);
                         break;
                     }
                     default:
