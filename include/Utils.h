@@ -189,6 +189,11 @@ NonBlockingRead(
     int timeout = 0);
 
 int
+BlockingRead(
+    SOCKET fd,
+    Buffer& b);
+
+int
 NonBlockingWriteEx(
     SOCKET fd,
     char* pcMessIn,

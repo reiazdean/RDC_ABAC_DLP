@@ -728,6 +728,24 @@ Select(
 }
 
 int
+BlockingRead(
+    SOCKET fd,
+    Buffer& b)
+{
+    int       len = 0;
+    
+    SetToBlock(fd);
+
+    do {
+        len = SockReadAppend(fd, b);
+    } while (len == FILE_TRANSFER_CHUNK_SZ);
+
+    SetToNotBlock(fd);
+    
+    return b.Size();
+}
+
+int
 NonBlockingRead(
     SOCKET fd,
     Buffer& b,
