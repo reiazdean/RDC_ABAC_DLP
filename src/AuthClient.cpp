@@ -1286,6 +1286,7 @@ void SignalHandler(int sig)
     switch (sig) {
     case SIGINT:
     case SIGTERM:
+    case SIGBREAK:
         if (SandBoxedState == NdacClientConfig::SandboxedState::INSIDE) {
             MySystemShutdown();
         }
@@ -1389,7 +1390,6 @@ int WINAPI wWinMain(
     if (CommandLine && (wcslen(CommandLine) > 0)) {
         try {
             string s = ccfg.GetMyFilePath();
-            Buffer to(s);
             SignalHandlerPointer previousHandler;
             std::vector<wchar_t*> pieces;
             splitStringW((wchar_t*)CommandLine, (wchar_t*)L" ", pieces);
@@ -1404,14 +1404,23 @@ int WINAPI wWinMain(
             SandBoxedState = NdacClientConfig::SandboxedState::INSIDE;
             previousHandler = signal(SIGINT, SignalHandler);
             previousHandler = signal(SIGTERM, SignalHandler);
+            previousHandler = signal(SIGBREAK, SignalHandler);
 
             GetUtf8FromWchar(pieces.at(1), SandBoxAuthBuf);
-
-            to.Append((void*)"\\CAFile.crt", strlen("\\CAFile.crt"));
-            to.NullTerminate();
             CreateDirectoryA((char*)s.c_str(), 0);
-            CopyFileA((char*)"C:\\Users\\WDAGUtilityAccount\\Downloads\\CAFile.crt", (char*)to, FALSE);
-
+            {
+                Buffer to(s);
+                to.Append((void*)"\\CAFile.crt", strlen("\\CAFile.crt"));
+                to.NullTerminate();
+                CopyFileA((char*)"C:\\Users\\WDAGUtilityAccount\\Downloads\\CAFile.crt", (char*)to, FALSE);
+            }
+            {
+                Buffer to(s);
+                to.Append((void*)"\\DilithiumPublic.dat", strlen("\\DilithiumPublic.dat"));
+                to.NullTerminate();
+                CopyFileA((char*)"C:\\Users\\WDAGUtilityAccount\\Downloads\\DilithiumPublic.dat", (char*)to, FALSE);
+            }
+            
             GetGatewayIP(GatewayIP);
             FirewallBlockAllButThisIP(GatewayIP);
             MyLocalClient = new LocalClient();
@@ -2623,11 +2632,13 @@ VerifyProc(void* args) {
 void*
 UploadProc(void* args) {
     try {
+        WCHAR wcBuf[MAX_LINE];
         struct _stat sbuf;
         TLSClientContext client;
         Responses rsp = RSP_INTERNAL_ERROR;
         AuthorizationRequest ar;
         DocHandler dh;
+        NdacClientConfig& conf = NdacClientConfig::GetInstance();
         Buffer bSelected(SelectedLocalFolder);
         bSelected.Append((void*)L"\\", sizeof(WCHAR));
         bSelected.Append(SelectedLocalFile);
@@ -2642,7 +2653,29 @@ UploadProc(void* args) {
             SendMessage(ProgressBarWidget.GetHWnd(), PBM_SETSTEP, (WPARAM)step, 0);
         }
 
-        dh.OpenDocument((wchar_t*)bSelected);
+        if (!dh.OpenDocument((wchar_t*)bSelected)) {
+            memset((void*)wcBuf, 0, MAX_LINE * sizeof(WCHAR));
+            swprintf_s(wcBuf, MAX_LINE, L"Failed to open %s\r\n", (wchar_t*)bSelected);
+            SetLocalStatus((WCHAR*)wcBuf, true);
+            return 0;
+        }
+        else {
+            DilithiumKeyPair dpk;
+            Buffer bPKfile = conf.GetValue(DILITHIUM_PUBLIC_FILE);
+            if (!dpk.ReadPublic((char*)bPKfile)) {
+                memset((void*)wcBuf, 0, MAX_LINE * sizeof(WCHAR));
+                swprintf_s(wcBuf, MAX_LINE, L"Failed to open the Dilithium public key file \"%S\"\r\n", (char*)bPKfile);
+                SetLocalStatus((WCHAR*)wcBuf, true);
+                return 0;
+            }
+            if (!dh.TimeStampVerify(dpk)) {
+                memset((void*)wcBuf, 0, MAX_LINE * sizeof(WCHAR));
+                swprintf_s(wcBuf, MAX_LINE, L"Failed to verify the timestamp for %s\r\n", (wchar_t*)bSelected);
+                SetLocalStatus((WCHAR*)wcBuf, true);
+                return 0;
+            }
+        }
+
         if (dh.GetAuthRequest(ar)) {
             Buffer resp;
             if (RequestAuthorization(client, &ar, CMD_UPLOAD_DOCUMENT, resp, false)) {
@@ -2662,7 +2695,6 @@ UploadProc(void* args) {
         SendMessage(ProgressBarWidget.GetHWnd(), PBM_SETPOS, 0, 0);
         
         {
-            WCHAR wcBuf[MAX_LINE];
             memset((void*)wcBuf, 0, MAX_LINE * sizeof(WCHAR));
             swprintf_s(wcBuf, MAX_LINE,
                 L"%s\r\n%s\r\nresp = %d\r\n",
@@ -3106,6 +3138,7 @@ bool CreateSandboxScript(Buffer& bScriptName)
         getenv_s(&requiredSize, 0, 0, "USERPROFILE");
         if (requiredSize > 0)
         {
+            NdacClientConfig& conf = NdacClientConfig::GetInstance();
             Buffer bEnv(requiredSize + 1);
             getenv_s(&requiredSize, (char*)bEnv, requiredSize, "USERPROFILE");
             //FIXME
@@ -3122,7 +3155,6 @@ bool CreateSandboxScript(Buffer& bScriptName)
             }
 
             {
-                NdacClientConfig& conf = NdacClientConfig::GetInstance();
                 Buffer bTmp;
                 Buffer bCAFile = conf.GetValue(TRUSTED_CA_FILE);
                 bTmp.Append((void*)bEnv, wcslen((WCHAR*)bEnv) * sizeof(WCHAR));
@@ -3130,6 +3162,16 @@ bool CreateSandboxScript(Buffer& bScriptName)
                 bTmp.Append((void*)"\\CAFile.crt", strlen("\\CAFile.crt"));
                 bTmp.NullTerminate();
                 CopyFileA((char*)bCAFile, (char*)bTmp, FALSE);
+            }
+
+            {
+                Buffer bTmp;
+                Buffer bDPKFile = conf.GetValue(DILITHIUM_PUBLIC_FILE);
+                bTmp.Append((void*)bEnv, wcslen((WCHAR*)bEnv) * sizeof(WCHAR));
+                bTmp.Append((void*)"\\Documents\\Temp", strlen("\\Documents\\Temp"));
+                bTmp.Append((void*)"\\DilithiumPublic.dat", strlen("\\DilithiumPublic.dat"));
+                bTmp.NullTerminate();
+                CopyFileA((char*)bDPKFile, (char*)bTmp, FALSE);
             }
 
             {
