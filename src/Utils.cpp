@@ -684,7 +684,11 @@ BlockingSockWrite(
 
     SetToBlock(fd);
     do {
-        written += SockWrite(fd, pcMessIn + written, minimum(MAX_WRITE_SIZE, limit - written));
+        int w = SockWrite(fd, pcMessIn + written, minimum(MAX_WRITE_SIZE, limit - written));
+        if (w <= 0) {
+            break;
+        }
+        written += w;
     } while (written < limit);
     SetToNotBlock(fd);
 
@@ -797,7 +801,11 @@ NonBlockingWriteEx(
     }
 
     do {
-        written += SockWrite(fd, (char*)pcMessIn + written, minimum(FILE_TRANSFER_CHUNK_SZ, limit - written));
+        int w = SockWrite(fd, (char*)pcMessIn + written, minimum(FILE_TRANSFER_CHUNK_SZ, limit - written));
+        if (w < 0) {
+            break;
+        }
+        written += w;
         switch (errno) {
         case EWOULDBLOCK:
             if (0 > Select(fd, 1, 0, false)) {
