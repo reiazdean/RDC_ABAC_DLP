@@ -64,6 +64,15 @@ const BYTE SmartCardLogonDER[32]			= {0x04, 0x1e, 0x1e, 0x1c, 0x00, 0x53, 0x00, 
 const BYTE SmartCardLogon2DER[34]			= {0x04, 0x20, 0x1e, 0x1e, 0x00, 0x53, 0x00, 0x6d, 0x00, 0x61, 0x00, 0x72, 0x00, 0x74, 0x00, 0x63, 
                                                0x00, 0x61, 0x00, 0x72, 0x00, 0x64, 0x00, 0x4c, 0x00, 0x6f, 0x00, 0x67, 0x00, 0x6f, 0x00, 0x6e, 0x00, 0x32};
 
+//In the CA, duplicate the User template and create a ABACUser template
+//then edit the properties for "Supply in the request"
+const BYTE ABACUser[33]                     = { 0x30, 0x1f,
+													 0x06, 0x09,
+														   0x2b, 0x06, 0x01, 0x04, 0x01, 0x82, 0x37, 0x14, 0x02,
+													 0x04, 0x12,
+														   0x1e, 0x10,
+																 0x00, 0x41, 0x00, 0x42, 0x00, 0x41, 0x00, 0x43,//ABAC
+																 0x00, 0x55, 0x00, 0x73, 0x00, 0x65, 0x00, 0x72 };//User
 
 const BYTE SmartCardUser[43]				= {0x30, 0x29, 
 				                                     0x06, 0x09,
@@ -404,12 +413,7 @@ BuildUserCSR(
 		SubjAltName.Prepend((void*)SubjAltNameOID, sizeof(SubjAltNameOID));
 		SubjAltName.ASN1Wrap(CONSTRUCTED_SEQUENCE);
 		SubjAltName.Prepend((void*)ClientKeyUsage, sizeof(ClientKeyUsage));
-		if (strcmp("SmartcardUser", pcTemplate) == 0) {
-			SubjAltName.Prepend((void*)SmartCardUser, sizeof(SmartCardUser));
-		}
-		else {
-			SubjAltName.Prepend((void*)SmartCardLogon, sizeof(SmartCardLogon));
-		}
+		SubjAltName.Prepend((void*)ABACUser, sizeof(ABACUser));
 		SubjAltName.ASN1Wrap(CONSTRUCTED_SEQUENCE);
 		SubjAltName.ASN1Wrap(CONSTRUCTED_SET);
 		SubjAltName.Prepend((void*)ExtensionsOID, sizeof(ExtensionsOID));
