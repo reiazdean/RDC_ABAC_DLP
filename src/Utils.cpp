@@ -1398,22 +1398,29 @@ readFile_w(
     FILE* fp = NULL;
 
 #ifdef OS_WIN32
-    struct _stat     buf;
-    ret = _wstat(fname, &buf);
-    if (ret == 0) {
-        fp = f_open_u(fname, (wchar_t*)L"rb");
-    }
+    struct _stat64     buf;
+    fp = f_open_u(fname, (wchar_t*)L"rb");
 #else
     struct stat     buf;
-    ret = stat((char*)fname, &buf);
-    if (ret == 0) {
-        fp = fopen((char*)fname, "rb");
-    }
+    fp = fopen((char*)fname, "rb");
 #endif
     try {
         ret = 0;
         data.Clear();
         if (fp) {
+#ifdef OS_WIN32
+            if (_fstat64(_fileno(fp), &buf) != 0) {
+                fclose(fp);
+                fp = NULL;
+                return 0;
+            }
+#else
+            if (fstat(fileno(fp), &buf) != 0) {
+                fclose(fp);
+                fp = NULL;
+                return 0;
+            }
+#endif
             Buffer b(buf.st_size);
             ret = buf.st_size;
             if (ret == fread((char*)b, 1, ret, fp)) {
