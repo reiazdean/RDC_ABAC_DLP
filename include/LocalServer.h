@@ -40,6 +40,7 @@ namespace ReiazDean {
         static condition_variable myCondVar;
         static std::atomic<bool> Stopped;
         static std::atomic<int> WorkersNotDone;
+        static Buffer mPrivKeyPassword;
     public:
 
         //************   Class Methods   *******************
@@ -58,7 +59,6 @@ namespace ReiazDean {
     private:
         ServiceType                     mServiceType;
         SOCKET                          mWsSock;
-        Buffer                          mPrivKeyPassword;
         bool                            mPwdFutureSatisfied;
         ECKeyPair                       m_ECKeyPair;
     public:

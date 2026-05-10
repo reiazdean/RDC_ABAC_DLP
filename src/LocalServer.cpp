@@ -58,6 +58,7 @@ mutex LocalServer::myMutex;
 condition_variable LocalServer::myCondVar;
 std::atomic<bool> LocalServer::Stopped = false;
 std::atomic<int> LocalServer::WorkersNotDone = 0;
+Buffer LocalServer::mPrivKeyPassword;
 SOCKET connection_socket = 0;
 
 void LocalServer::WorkerListen()
@@ -202,7 +203,9 @@ bool LocalServer::StartTLS()
                 if (mPrivKeyPassword.Size() > 0) {
                     mPwdFutureSatisfied = true;
                     mPrivKeyPassword.LockPages();
-                    threadPool::queueThread((void*)LocalServer::LaunchService, (void*)NULL);
+                    //threadPool::queueThread((void*)LocalServer::LaunchService, (void*)NULL);
+                    LaunchService(NULL);
+                    DoLocalServer();
                     return true;
                 }
             }
@@ -386,7 +389,9 @@ int LocalServer::DoLocalServer()
 
     ServiceReportEvent((TCHAR*)"Local Service listening.", LOCAL_SERVICE_CATEGORY, STATUS_SEVERITY_SUCCESS, MSG_SUCCESS);
 
-    threadPool::queueThread((void*)LocalServer::ClusterSecretsPoller, (void*)NULL);
+    if (!mPwdFutureSatisfied) {
+        threadPool::queueThread((void*)LocalServer::ClusterSecretsPoller, (void*)NULL);
+    }
 
     /* This is the main loop for handling connections. */
     while (!Stopped) {
